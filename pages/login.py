@@ -48,42 +48,40 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-# --- THE FINAL RESILIENCE REPAIR ---
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 1. Get the raw key and remove ONLY the headers/footers first
+                # 1. Isolate the raw key data
                 raw_key = creds_dict["private_key"]
                 
-                # Remove headers, footers, and literal \n strings
+                # 2. Remove headers and footers to isolate the body
                 inner_key = raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
                 inner_key = inner_key.replace("-----END PRIVATE KEY-----", "")
                 inner_key = inner_key.replace("\\n", "")
                 
-                # 2. CRITICAL: Remove every single character that IS NOT a Base64 character
-                # (A-Z, a-z, 0-9, +, /, =)
-                # This kills hidden tabs, spaces, and \r characters
+                # 3. THE "PURGE" STEP: Remove EVERY character that is not A-Z, a-z, 0-9, +, /, or =
+                # This ensures \r, \t, or hidden spaces are completely gone
                 clean_body = re.sub(r'[^A-Za-z0-9+/=]', '', inner_key)
                 
-                # 3. Standard PEM Wrapping (64 chars per line)
+                # 4. RE-WRAP into the 64-character standard
+                # This places the '=' padding exactly where the library expects it
                 lines = [clean_body[i:i+64] for i in range(0, len(clean_body), 64)]
                 formatted_key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
                 
                 creds_dict["private_key"] = formatted_key
                 
-                # 4. Initialize
+                # 5. Initialize
                 cred = credentials.Certificate(creds_dict)
                 firebase_admin.initialize_app(cred, {
                     'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
                 })
-                print("🚀 Firebase Connected Successfully!")
+                print("🚀 Firebase Connected!")
             else:
-                st.error("Missing firebase_credentials in Secrets.")
+                st.error("Secrets not found!")
         except Exception as e:
-            # We print the error to logs for debugging
             st.error(f"Byte Repair Failed: {e}")
 
 initialize_firebase()
