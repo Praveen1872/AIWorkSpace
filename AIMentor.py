@@ -33,8 +33,7 @@ if not firebase_admin._apps:
             st.error("Secrets not found in Dashboard!")
     except Exception as e:
         st.error(f"Handshake failed: {e}")
-
-
+        
 client = genai.Client(api_key=API_KEY)
 MODEL_ID = "gemini-2.5-flash-lite" 
 st.set_page_config(page_title="AI Professional Workspace", layout="wide")

@@ -56,26 +56,24 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials
 
-# Use your actual database URL
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 
 if not firebase_admin._apps:
     try:
         if "firebase_credentials" in st.secrets:
-            # 1. Fetch the secret as a dictionary
+            # 1. Convert the secret to a dictionary
             firebase_creds = dict(st.secrets["firebase_credentials"])
             
-            # 2. THE CRITICAL FIX: 
-            # We must ensure literal '\n' characters are treated as real newlines.
+            # 2. THE FIX: Convert literal \n text into real newlines
+            # This allows Firebase to verify the 'JWT Signature'
             firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
             
-            # 3. Initialize using the dictionary
             cred = credentials.Certificate(firebase_creds)
             firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
         else:
-            st.error("Secrets not found in Dashboard!")
+            st.error("Setup Error: 'firebase_credentials' not found in Secrets.")
     except Exception as e:
-        st.error(f"Handshake failed: {e}")
+        st.error(f"Firebase Connection Failed: {e}")
 
 
 st.markdown("<h1 class='title-text'>🛡️ Join the Workspace</h1>", unsafe_allow_html=True)
