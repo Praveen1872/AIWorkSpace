@@ -165,7 +165,7 @@ if not is_logged_in:
         if st.button("Unlock Your AI Workspace 👉", key="main_unlock",use_container_width=True):
             
             st.switch_page("pages/register.py")
-        st.markdown("<p style='text-align: center; color: #888;'>Powered by <b>Google Gemini AI</b></p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; margin-left:100px; color: #888;'>Powered by <b>Google Gemini AI</b></p>", unsafe_allow_html=True)
     with main_col2:
         
         st.image("assets/banner2_desktop.png", use_container_width=True)
