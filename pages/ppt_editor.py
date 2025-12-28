@@ -68,7 +68,7 @@ with h_cols[0]:
     st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
 
 with h_cols[1]: 
-    if st.button("PPT 🖼️", use_container_width=True): st.switch_page("pages/ppt_editor.py")
+    if st.button("PPT 🖼️", use_container_width=True,type="primary"): st.switch_page("pages/ppt_editor.py")
 with h_cols[2]: 
     if st.button("Word 📝", use_container_width=True): st.switch_page("pages/word_editor.py")
 with h_cols[3]:

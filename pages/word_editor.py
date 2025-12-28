@@ -10,14 +10,14 @@ if not is_logged_in:
     st.switch_page("pages/login.py")
 
 
-h_cols = st.columns([2, 0.7, 0.7, 0.7, 4.9, 2.0, 1], vertical_alignment="center")
+h_cols = st.columns([2, 0.7, 0.7, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
 with h_cols[0]: 
     st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
 
 with h_cols[1]: 
     if st.button("PPT 🖼️", use_container_width=True): st.switch_page("pages/ppt_editor.py")
 with h_cols[2]: 
-    if st.button("Word 📝", use_container_width=True): st.switch_page("pages/word_editor.py")
+    if st.button("Word 📝", use_container_width=True,type="primary"): st.switch_page("pages/word_editor.py")
 with h_cols[3]: 
     if st.button("Notes 📓", use_container_width=True): st.switch_page("pages/note.py")
 with h_cols[4]: 
