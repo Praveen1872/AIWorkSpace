@@ -1,7 +1,7 @@
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, db
-from google import genai  # Modern package
+from firebase_admin import credentials, auth, db
+from google import genai
 from google.genai import types
 from fpdf import FPDF
 import PIL.Image
@@ -12,44 +12,37 @@ import os
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 MODEL_ID = "gemini-2.0-flash-exp" 
-import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, auth, db
 
-# --- THE CLEAN-ROOM REPAIR BLOCK ---
+# --- THE ZERO-ERROR PEM REPAIR BLOCK ---
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
-                # 1. Standardize the dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 2. SURGICAL REPAIR OF THE PRIVATE KEY
-                # This removes all literal backslashes and ensures proper PEM wrapping
+                # Surgical repair of the private key to prevent PEM/JWT errors
                 raw_key = creds_dict["private_key"]
                 
-                # Replace literal \n and remove any stray quotes or spaces
-                clean_key = raw_key.replace("\\n", "\n").strip().strip('"').strip("'")
+                # Remove literal \n, headers, footers, and quotes to get the raw base64 string
+                clean_body = (
+                    raw_key.replace("\\n", "\n")
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .strip()
+                    .strip('"')
+                    .strip("'")
+                )
                 
-                # Ensure the header and footer are exactly on their own lines
-                if "-----BEGIN PRIVATE KEY-----" not in clean_key:
-                    clean_key = f"-----BEGIN PRIVATE KEY-----\n{clean_key}"
-                if "-----END PRIVATE KEY-----" not in clean_key:
-                    clean_key = f"{clean_key}\n-----END PRIVATE KEY-----"
+                # Reconstruct with explicit, single newlines (required by cryptography library)
+                fixed_key = f"-----BEGIN PRIVATE KEY-----\n{clean_body}\n-----END PRIVATE KEY-----\n"
+                creds_dict["private_key"] = fixed_key
                 
-                # Final normalization: Ensure no double headers/footers
-                clean_key = clean_key.replace("\n\n", "\n")
-                creds_dict["private_key"] = clean_key
-                
-                # 3. Initialize
                 cred = credentials.Certificate(creds_dict)
-                firebase_admin.initialize_app(cred, {
-                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-                })
+                firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
             else:
                 st.error("Credentials key missing in Streamlit Secrets!")
         except Exception as e:
-            st.error(f"JWT Signature Fix Failed: {e}")
+            st.error(f"Firebase Initialization Failed: {e}")
 
 initialize_firebase()
 client = genai.Client(api_key=API_KEY)
@@ -59,17 +52,23 @@ st.set_page_config(page_title="AI Professional Workspace", layout="wide", initia
 
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
     .stApp { 
         background-color: #FAF8F7; 
         color: #1A1A1A; 
         font-family: 'Inter', sans-serif;
     }
+    
+    /* Column alignment for header */
     [data-testid="column"] {
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 0px 5px !important;
     }
+
+    /* Modern Button Styling */
     div.stButton > button { 
         border-radius: 12px; 
         background-color: #FF6042; 
@@ -80,12 +79,19 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    
     div.stButton > button:hover {
         background-color: #FF4520;
         color: white !important;
         transform: translateY(-2px);
         box-shadow: 0px 6px 15px rgba(255, 96, 66, 0.3);
     }
+
+    /* Chat input styling */
+    .stChatInputContainer {
+        padding-bottom: 20px;
+    }
+
     hr {
         margin-top: 1rem;
         margin-bottom: 2rem;
@@ -121,10 +127,10 @@ if "logged_in" not in st.session_state:
 
 is_logged_in = st.session_state.logged_in
 
-# Header UI - Updated with width="stretch" for 2026 compliance
+# Header UI - Modern stretch layout
 cols = st.columns([2, 0.7, 0.7, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
 with cols[0]:
-    st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin:0; font-weight:800;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
 
 if is_logged_in:
     with cols[1]:
@@ -143,43 +149,44 @@ else:
     with cols[5]:
         if st.button("Sign In 👤", key="hdr_login"): st.switch_page("pages/login.py")
     with cols[6]:
-        if st.button("Sign Up 🚀", key="hdr_signup", type="primary"): st.switch_page("pages/register.py")
+        if st.button("Sign Up 🚀", key="hdr_signup"): st.switch_page("pages/register.py")
 
 st.markdown("<hr>", unsafe_allow_html=True)
 
-# --- 5. LANDING PAGE (IF NOT LOGGED IN) ---
+# --- 5. LANDING PAGE (GUEST VIEW) ---
 if not is_logged_in:
     main_col1, main_col2 = st.columns([1.2, 1], gap="large")
     with main_col1:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown("""
-            <h1 style='font-size: 3rem; margin-bottom: 0;'>🚀 Welcome to</h1>
-            <h1 style='font-size: 4rem; color: #FF6042; margin-top: -20px;'>AI Workspace</h1>
-            <p style='font-size: 1.2rem; color: #555;'>Stop wasting hours on tasks AI can handle. 
-            Your personal academic mentor is ready to help you excel.</p>
+            <h1 style='font-size: 3.5rem; line-height: 1.1; font-weight: 800;'>Unlock Your<br>
+            <span style='color: #FF6042;'>Academic Potential</span></h1>
+            <p style='font-size: 1.25rem; color: #555; margin-top: 20px;'>
+            Your personal AI workspace for research, summarization, and document generation. 
+            Sign up to save your learning progress across sessions.</p>
         """, unsafe_allow_html=True)
-        st.info("💡 Please **Sign In** or **Sign Up** to access your persistent AI Mentor.")
-        if st.button("Unlock Your AI Workspace ✨", key="main_unlock"):
-            st.switch_page("pages/login.py")
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Get Started for Free ✨", key="main_unlock"):
+            st.switch_page("pages/register.py")
     with main_col2:
-        # Replaced use_container_width with width="stretch"
-        st.image("https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", width="stretch")
+        st.image("https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", width=None)
     st.stop()
 
-# --- 6. CHAT INTERFACE (IF LOGGED IN) ---
+# --- 6. CHAT INTERFACE (USER VIEW) ---
 user_uid = st.session_state.get('user_uid', 'guest_user')
 chat_ref = db.reference(f"users/{user_uid}/chat_history")
 
+# Load persistent chat history from Firebase
 if "messages" not in st.session_state:
     saved_history = chat_ref.get()
     st.session_state.messages = saved_history if saved_history else []
 
 with st.sidebar:
-    st.title("🛠️ Tools")
-    feature = st.radio("Mode:", ["Doubts Solver", "Career Guide"])
+    st.markdown("<h2 style='color: #FF6042;'>🛠️ Workspace</h2>", unsafe_allow_html=True)
+    feature = st.radio("Model Context:", ["Doubts Solver", "Career Guide", "Research Assistant"])
     st.markdown("---")
     deep_dive = st.toggle("Detailed Mode (Deep Dive)", value=False)
-    if st.button("🗑️ Clear My Learning Data"):
+    if st.button("🗑️ Reset All Progress"):
         st.session_state.messages = []
         chat_ref.delete()
         st.rerun()
@@ -193,25 +200,29 @@ with chat_display:
             if message["role"] == "assistant" and i > 0:
                 user_q = st.session_state.messages[i-1]["content"]
                 pdf_bytes = export_last_chat_to_pdf(user_q, message["content"])
-                st.download_button("📝 Save as Note", pdf_bytes, f"note_{i}.pdf", key=f"dl_{i}")
+                st.download_button("📝 Export as PDF", pdf_bytes, f"note_{i}.pdf", key=f"dl_{i}")
 
-# Image Attachment Area
-with st.expander("➕ Attach Image (Math problems, Diagrams, Notes)", expanded=False):
-    up_img = st.file_uploader("Choose an image", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+# Multimedia input expander
+with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False):
+    up_img = st.file_uploader("Upload visual data for the AI to analyze", type=["jpg", "jpeg", "png"])
     if up_img:
-        st.image(up_img, caption="Image ready for analysis", width=250)
+        st.image(up_img, caption="Image Attachment Ready", width=300)
 
-# Input Processing
-if prompt := st.chat_input(f"Consulting {feature}..."):
+# Process User Input
+if prompt := st.chat_input(f"Ask your {feature}..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with chat_display:
         with st.chat_message("user"):
             st.markdown(prompt)
-            if up_img: st.image(up_img, width=250)
+            if up_img: st.image(up_img, width=300)
 
     with st.chat_message("assistant"):
         resp_placeholder = st.empty()
-        SYSTEM_PROMPT = f"You are an Elite Academic Mentor. Mode: {feature}. Strategy: {'Detailed' if deep_dive else 'Concise'}."
+        # Customizing the AI's persona based on user selection
+        SYSTEM_PROMPT = (
+            f"You are an Elite Academic Mentor. Current Focus: {feature}. "
+            f"Tone: Encouraging and Academic. Mode: {'Detailed Research' if deep_dive else 'Concise Insight'}."
+        )
         
         try:
             input_data = [prompt]
@@ -219,7 +230,7 @@ if prompt := st.chat_input(f"Consulting {feature}..."):
                 img = PIL.Image.open(up_img)
                 input_data.append(img)
             
-            # Using modern Client structure
+            # 2026-Compliant Gemini Call
             response = client.models.generate_content(
                 model=MODEL_ID,
                 contents=input_data,
@@ -229,9 +240,10 @@ if prompt := st.chat_input(f"Consulting {feature}..."):
             final_answer = response.text
             resp_placeholder.markdown(final_answer)
             
+            # Persistence: Update local state and Firebase
             st.session_state.messages.append({"role": "assistant", "content": final_answer})
             chat_ref.set(st.session_state.messages)
             st.rerun()
 
         except Exception as e:
-            st.error(f"Connection Error: {e}")
+            st.error(f"AI Connection Failed: {e}")

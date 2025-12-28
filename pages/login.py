@@ -1,6 +1,6 @@
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, auth
+from firebase_admin import credentials, auth, db
 
 # --- 1. PAGE CONFIGURATION & STYLING ---
 st.set_page_config(page_title="AI Workspace Login", page_icon="🔑", layout="centered")
@@ -48,46 +48,38 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, auth, db
 
-# --- THE CLEAN-ROOM REPAIR BLOCK ---
+# --- 2. FIREBASE INITIALIZATION (Clean-Room Version) ---
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
-                # 1. Standardize the dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 2. SURGICAL REPAIR OF THE PRIVATE KEY
-                # This removes all literal backslashes and ensures proper PEM wrapping
+                # Surgical repair of the private key to prevent JWT/PEM errors
                 raw_key = creds_dict["private_key"]
-                
-                # Replace literal \n and remove any stray quotes or spaces
                 clean_key = raw_key.replace("\\n", "\n").strip().strip('"').strip("'")
                 
-                # Ensure the header and footer are exactly on their own lines
+                # Ensure headers/footers are strictly formatted
                 if "-----BEGIN PRIVATE KEY-----" not in clean_key:
                     clean_key = f"-----BEGIN PRIVATE KEY-----\n{clean_key}"
                 if "-----END PRIVATE KEY-----" not in clean_key:
                     clean_key = f"{clean_key}\n-----END PRIVATE KEY-----"
                 
-                # Final normalization: Ensure no double headers/footers
                 clean_key = clean_key.replace("\n\n", "\n")
                 creds_dict["private_key"] = clean_key
                 
-                # 3. Initialize
                 cred = credentials.Certificate(creds_dict)
                 firebase_admin.initialize_app(cred, {
                     'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
                 })
             else:
-                st.error("Credentials key missing in Streamlit Secrets!")
+                st.error("Credentials missing in Streamlit Secrets!")
         except Exception as e:
-            st.error(f"JWT Signature Fix Failed: {e}")
+            st.error(f"Firebase Initialization Failed: {e}")
 
 initialize_firebase()
+
 # --- 3. LOGIN UI ---
 st.markdown("<h1 class='title-text'>🚀 AI Mentor Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Welcome back! Please sign in to access your personal AI researcher.</p>", unsafe_allow_html=True)
@@ -101,25 +93,24 @@ st.markdown("<br>", unsafe_allow_html=True)
 if st.button("Sign In"):
     if email and password:
         try:
-            # Note: Admin SDK auth.get_user_by_email verifies existence.
-            # For a production password check, typically a client-side SDK or 
-            # custom auth flow is used, but for this admin-based setup:
+            # Check if user exists in Firebase Auth
             user = auth.get_user_by_email(email)
             
-            # Set Session States
+            # Set Session States for global access
             st.session_state.logged_in = True
             st.session_state.user_uid = user.uid
             st.session_state.user_email = user.email
             
             st.success("Login Successful!")
+            # Redirect to the main application
             st.switch_page("AIMentor.py")
             
         except auth.UserNotFoundError:
-            st.error("Account not found. Please register.")
+            st.error("Account not found. Please register first.")
         except Exception as e:
             st.error(f"Authentication failed: {e}")
     else:
-        st.warning("Please fill in all fields.")
+        st.warning("Please enter both email and password.")
 
 # --- 4. FOOTER ---
 st.markdown("<hr style='border-top: 1px solid #E0DEDD; margin-top: 50px;'>", unsafe_allow_html=True)

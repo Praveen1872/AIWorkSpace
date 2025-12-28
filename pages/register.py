@@ -29,45 +29,45 @@ st.markdown("""
 
 # --- 2. FIREBASE INITIALIZATION ---
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-# --- THE SURGICAL PEM REPAIR ---
-import streamlit as st
-import firebase_admin
-from firebase_admin import credentials, auth, db
 
-# --- THE CLEAN-ROOM REPAIR BLOCK ---
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
-                # 1. Standardize the dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 2. SURGICAL REPAIR OF THE PRIVATE KEY
-                # This removes all literal backslashes and ensures proper PEM wrapping
+                # REPAIRING THE PRIVATE KEY (Byte-Perfect Method)
                 raw_key = creds_dict["private_key"]
                 
-                # Replace literal \n and remove any stray quotes or spaces
-                clean_key = raw_key.replace("\\n", "\n").strip().strip('"').strip("'")
+                # 1. Strip all escapings, headers, and EVERY piece of whitespace
+                clean_body = (
+                    raw_key.replace("\\n", "")
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replace(" ", "")
+                    .replace("\n", "")
+                    .replace("\r", "")
+                    .strip()
+                    .strip('"')
+                    .strip("'")
+                )
                 
-                # Ensure the header and footer are exactly on their own lines
-                if "-----BEGIN PRIVATE KEY-----" not in clean_key:
-                    clean_key = f"-----BEGIN PRIVATE KEY-----\n{clean_key}"
-                if "-----END PRIVATE KEY-----" not in clean_key:
-                    clean_key = f"{clean_key}\n-----END PRIVATE KEY-----"
+                # 2. Re-wrap the body: Standard PEM expects 64 chars per line
+                # This fixes the 'InvalidByte' error by ensuring the '=' padding is correctly placed
+                lines = [clean_body[i:i+64] for i in range(0, len(clean_body), 64)]
+                fixed_body = "\n".join(lines)
                 
-                # Final normalization: Ensure no double headers/footers
-                clean_key = clean_key.replace("\n\n", "\n")
-                creds_dict["private_key"] = clean_key
+                # 3. Construct the final PEM format
+                final_key = f"-----BEGIN PRIVATE KEY-----\n{fixed_body}\n-----END PRIVATE KEY-----\n"
+                creds_dict["private_key"] = final_key
                 
-                # 3. Initialize
+                # 4. Initialize
                 cred = credentials.Certificate(creds_dict)
-                firebase_admin.initialize_app(cred, {
-                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-                })
+                firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
             else:
                 st.error("Credentials key missing in Streamlit Secrets!")
         except Exception as e:
-            st.error(f"JWT Signature Fix Failed: {e}")
+            st.error(f"Authentication Error: {e}")
 
 initialize_firebase()
 
@@ -96,5 +96,16 @@ if st.button("Sign Up"):
     else:
         st.warning("Please fill in all fields.")
 
+# --- 4. FOOTER ---
 st.markdown("<hr style='border-top: 1px solid #E0DEDD; margin-top: 40px;'>", unsafe_allow_html=True)
-st.markdown("<div style='text-align: center; color: #666;'>Already have an account? <a href='/login' target='_self' class='footer-link'>Log In here 🚀</a></div>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style="text-align: center; color: #666;">
+        Already have an account? 
+        <a href="/login" target="_self" class="footer-link">
+            Log In here 🚀
+        </a>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
