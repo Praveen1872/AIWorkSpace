@@ -136,7 +136,7 @@ if is_logged_in:
     with cols[3]:
         if st.button("Note 📓", key="hdr_note"): st.switch_page("pages/note.py")
     with cols[4]:
-        if st.button("Summarize 📝", key="hdr_sum"): st.switch_page("pages/Summarizer.py")
+        if st.button("Summarize📝", key="hdr_sum"): st.switch_page("pages/Summarizer.py")
     with cols[6]:
         if st.button("Logout 🚪", key="hdr_out"):
             st.session_state.logged_in = False
