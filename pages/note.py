@@ -37,16 +37,34 @@ st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", un
 # --- STYLING ---
 st.markdown("""
 <style>
-   .notebook-paper {
-    background-color: #ffffff;
-    border: 1px solid #e5e7eb;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+/* Remove border, background, radius, shadow from text input */
+div[data-baseweb="input"] {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
+/* Remove border & shadow from textarea */
+div[data-baseweb="textarea"] {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Remove internal borders */
+input, textarea {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Optional: add subtle underline instead */
+input {
+    border-bottom: 1px solid #ddd !important;
+    border-radius: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- LATEST SUMMARY ---
 latest_history = st.session_state.get("research_chat_history", [])
