@@ -51,20 +51,35 @@ st.markdown("""
 
 # --- 2. FIREBASE INITIALIZATION ---
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-
+# --- THE FINAL JWT SIGNATURE REPAIR BLOCK ---
 if not firebase_admin._apps:
     try:
         if "firebase_credentials" in st.secrets:
-            firebase_creds = dict(st.secrets["firebase_credentials"])
-            # CRITICAL FIX: Convert \n characters to real newlines for the JWT signature
-            firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
+            # 1. Convert secrets object to a standard dictionary
+            creds_dict = dict(st.secrets["firebase_credentials"])
             
-            cred = credentials.Certificate(firebase_creds)
-            firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
+            # 2. Get the raw key and strip any accidental whitespace
+            raw_key = creds_dict["private_key"]
+            
+            # 3. THE CRITICAL FIX:
+            # We must handle keys that are "double escaped" or contain literal \n text.
+            # This handles both standard JSON exports and manual pastes.
+            if "\\n" in raw_key:
+                cleaned_key = raw_key.replace("\\n", "\n")
+            else:
+                cleaned_key = raw_key
+                
+            creds_dict["private_key"] = cleaned_key
+            
+            # 4. Initialize
+            cred = credentials.Certificate(creds_dict)
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+            })
         else:
-            st.error("Setup Error: 'firebase_credentials' not found in Secrets.")
+            st.error("Credentials not found in Streamlit Secrets.")
     except Exception as e:
-        st.error(f"Firebase Connection Failed: {e}")
+        st.error(f"Authentication Error: {e}")
 
 # --- 3. REGISTRATION UI ---
 st.markdown("<h1 class='title-text'>🛡️ Join the Workspace</h1>", unsafe_allow_html=True)
