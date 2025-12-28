@@ -50,30 +50,36 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+DB_URL = "https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
 def initialize_firebase():
-    """Initializes Firebase using the updated Secrets dictionary."""
+    """Initializes Firebase safely using Streamlit Secrets."""
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
-                # 1. Convert the TOML section to a Python dictionary
+                # Convert secrets to dict
                 creds_dict = dict(st.secrets["firebase_credentials"])
-                
-                # 2. Use the dictionary to create the credential object
+
+                # 🔴 CRITICAL FIX — repair PEM formatting
+                if "private_key" in creds_dict:
+                    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+
+                # Create credential
                 cred = credentials.Certificate(creds_dict)
-                
-                # 3. Initialize the app
+
+                # Initialize Firebase
                 firebase_admin.initialize_app(cred, {
-                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+                    "databaseURL": DB_URL
                 })
-                st.toast("🚀 Firebase Connected Successfully!")
+
             else:
-                st.error("Credential Error: 'firebase_credentials' not found in Secrets.")
+                st.error("Firebase credentials not found in Streamlit Secrets.")
+
         except Exception as e:
-            st.error(f"Handshake Failed: {e}")
+            st.error(f"Firebase Initialization Failed: {e}")
 
-# Run the function
+# Call once at page load
 initialize_firebase()
-
 # --- 3. LOGIN UI ---
 st.markdown("<h1 class='title-text'>🚀 AI Mentor Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Welcome back! Please sign in to access your personal AI researcher.</p>", unsafe_allow_html=True)

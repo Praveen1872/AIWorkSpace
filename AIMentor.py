@@ -6,43 +6,35 @@ from google.genai import types
 from fpdf import FPDF
 import PIL.Image
 import io
-import os
-import tempfile
-import json
 
 
 # --- 1. FIREBASE & API SETUP ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
-DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 def initialize_firebase():
-    """Initializes Firebase using only Streamlit Secrets."""
     if not firebase_admin._apps:
         try:
-            # 1. Look for secrets in the Streamlit Cloud dashboard
-            if "firebase_credentials" in st.secrets:
-                # Convert the TOML secrets into a Python Dictionary
-                creds_dict = dict(st.secrets["firebase_credentials"])
-                
-                # Use the dictionary directly as credentials
-                cred = credentials.Certificate(creds_dict)
-                firebase_admin.initialize_app(cred, {
-                    'databaseURL': DB_URL
-                })
-                st.toast("🚀 Connected to Firebase via Secrets!")
-            else:
-                st.error("❌ Configuration Error: 'firebase_credentials' not found in Streamlit Secrets.")
-                st.info("Please add your credentials to the App Settings > Secrets dashboard.")
-                
-        except Exception as e:
-            # This captures any formatting issues in your private_key
-            st.error(f"⚠️ Handshake Failed: {e}")
+            creds_dict = dict(st.secrets["firebase_credentials"])
 
-# Run initialization
-initialize_firebase()
+            # ✅ Only fix if escaped newlines actually exist
+            pk = creds_dict.get("private_key", "")
+            if "\\n" in pk:
+                creds_dict["private_key"] = pk.replace("\\n", "\n")
+
+            cred = credentials.Certificate(creds_dict)
+
+            firebase_admin.initialize_app(
+                cred,
+                {
+                    "databaseURL": "https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/"
+                }
+            )
+
+        except Exception as e:
+            st.error(f"Firebase Initialization Failed: {e}")
+
 client = genai.Client(api_key=API_KEY)
 # Initialize the Gemini Client
-client = genai.Client(api_key=API_KEY)
-
+MODEL_ID = "gemini-1.5-flash"
 # --- 2. PAGE CONFIG & STYLING ---
 st.set_page_config(page_title="AI Professional Workspace", layout="wide", initial_sidebar_state="collapsed")
 

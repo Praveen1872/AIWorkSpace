@@ -28,29 +28,29 @@ st.markdown("""
     .footer-link { color: #1A1A1A; font-weight: 700; text-decoration: none !important; }
 </style>
 """, unsafe_allow_html=True)
+
 def initialize_firebase():
-    """Initializes Firebase using the updated Secrets dictionary."""
     if not firebase_admin._apps:
         try:
-            if "firebase_credentials" in st.secrets:
-                # 1. Convert the TOML section to a Python dictionary
-                creds_dict = dict(st.secrets["firebase_credentials"])
-                
-                # 2. Use the dictionary to create the credential object
-                cred = credentials.Certificate(creds_dict)
-                
-                # 3. Initialize the app
-                firebase_admin.initialize_app(cred, {
-                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-                })
-                st.toast("🚀 Firebase Connected Successfully!")
-            else:
-                st.error("Credential Error: 'firebase_credentials' not found in Secrets.")
-        except Exception as e:
-            st.error(f"Handshake Failed: {e}")
+            creds_dict = dict(st.secrets["firebase_credentials"])
 
-# Run the function
-initialize_firebase()
+            # ✅ Only fix if escaped newlines actually exist
+            pk = creds_dict.get("private_key", "")
+            if "\\n" in pk:
+                creds_dict["private_key"] = pk.replace("\\n", "\n")
+
+            cred = credentials.Certificate(creds_dict)
+
+            firebase_admin.initialize_app(
+                cred,
+                {
+                    "databaseURL": "https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/"
+                }
+            )
+
+        except Exception as e:
+            st.error(f"Firebase Initialization Failed: {e}")
+
 
 # --- 3. REGISTRATION UI ---
 st.markdown("<h1 class='title-text'>🛡️ Join the Workspace</h1>", unsafe_allow_html=True)
