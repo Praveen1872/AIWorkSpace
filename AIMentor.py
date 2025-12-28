@@ -8,6 +8,7 @@ import PIL.Image
 import io
 import os
 import tempfile
+import json
 # --- 1. FIREBASE & API SETUP ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
