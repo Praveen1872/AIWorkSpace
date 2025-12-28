@@ -162,7 +162,7 @@ if not is_logged_in:
     with main_col2:
         # --- UPDATED FOR 2026 COMPLIANCE ---
         st.image(
-    "https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", 
+    r"C:\Teju\25335A0510(Praveen)\copy\wrokspace\banner2_desktop.png", 
     width="stretch" 
 )
         st.stop()
