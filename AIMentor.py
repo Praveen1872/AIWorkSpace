@@ -157,12 +157,13 @@ if not is_logged_in:
         st.markdown("""
             <h1 style='font-size: 3.5rem; line-height: 1.1; font-weight: 800;'>Unlock Your<br>
             <span style='color: #FF6042;'>Academic Potential</span></h1>
-            <p style='font-size: 1.25rem; color: #555; margin-top: 20px;'>
-            Your personal AI workspace for research, summarization, and document generation. 
-            Sign up to save your learning progress across sessions.</p>
+            <p style='font-size: 1.25rem; color: #555; margin-top: 20px;'> Stop wasting hours on tasks AI can handle.  
+        Your personal academic mentor is ready to help you.</p>
         """, unsafe_allow_html=True)
+        st.info("💡 Please Sign In or Sign Up to access your persistent AI Mentor.")
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Get Started ", key="main_unlock"):
+            st.caption("Powered by Google Gemini AI")
             st.switch_page("pages/register.py")
     with main_col2:
         
