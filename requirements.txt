@@ -1,0 +1,7 @@
+streamlit
+firebase-admin
+google-genai
+python-pptx
+fpdf
+pillow
+python-docx

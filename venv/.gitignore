@@ -1,0 +1,14 @@
+# Ignore the virtual environment (This stops the thousands of warnings)
+venv/
+.venv/
+env/
+
+# Ignore the Firebase secret key (Stops GitHub Push Protection)
+**/serviceAccountKey.json
+serviceAccountKey.json
+
+# Ignore Python cache and local settings
+__pycache__/
+*.pyc
+.streamlit/
+.env
