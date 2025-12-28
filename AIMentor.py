@@ -155,14 +155,14 @@ if not is_logged_in:
     with main_col1:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown("""
-             <h1 style='font-size: 3rem; margin-bottom: 0;'>🚀 Welcome to</h1>
+             <h1 style='font-size: 3rem; margin-bottom: 0;'>👋 Welcome to</h1>
             <h1 style='font-size: 4rem; color: #FF6042; margin-top: -20px;'>AI Workspace</h1>
             <p style='font-size: 1.25rem; color: #555; margin-top: 20px;'> Stop wasting hours on tasks AI can handle.  
         Your personal academic mentor is ready to help you.</p>
         """, unsafe_allow_html=True)
         st.info("💡 Please Sign In or Sign Up to access your persistent AI Mentor.")
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Get Started ", key="main_unlock",use_container_width=True):
+        if st.button("Unlock Your AI Workspace 👉", key="main_unlock",use_container_width=True):
             
             st.switch_page("pages/register.py")
         st.markdown("<p style='text-align: center; color: #888;'>Powered by <b>Google Gemini AI</b></p>", unsafe_allow_html=True)
