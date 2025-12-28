@@ -55,35 +55,35 @@ DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.
 
 
 def initialize_firebase():
+    """Initializes Firebase using a temporary file buffer for the Service Account."""
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
-                # 1. Load the secrets into a dictionary
+                # 1. Load secrets into a dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 2. Clean the private key
-                # We handle literal \n strings that often appear in copy-pastes
+                # 2. Fix the private key format (handling literal \n)
+                # This is essential for keys copied from JSON files
                 raw_key = creds_dict["private_key"]
-                cleaned_key = raw_key.replace("\\n", "\n").strip().strip('"')
-                creds_dict["private_key"] = cleaned_key
+                creds_dict["private_key"] = raw_key.replace("\\n", "\n").strip().strip('"')
                 
-                # 3. Create a temporary JSON file to bypass string-parsing errors
-                # This is the "Nuclear Option" for PEM errors
+                # 3. Write to a temporary JSON file
+                # This mimics the local .json file Firebase expects natively
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as tp:
                     json.dump(creds_dict, tp)
                     temp_path = tp.name
                 
-                # 4. Initialize using the path to our temp file
-                cred = credentials.Certificate(temp_path)
-                firebase_admin.initialize_app(cred, {
-                    'databaseURL': DB_URL
-                })
-                
-                # 5. Clean up the temp file after use
-                os.unlink(temp_path)
-                print("🚀 Firebase Success via File Buffer!")
+                try:
+                    # 4. Initialize via the temp file path
+                    cred = credentials.Certificate(temp_path)
+                    firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
+                    print("🚀 Firebase Initialized Successfully!")
+                finally:
+                    # 5. Clean up the file immediately after initialization
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
             else:
-                st.error("Firebase credentials missing in Secrets.")
+                st.error("Firebase credentials missing in Secrets dashboard.")
         except Exception as e:
             st.error(f"Handshake Failed: {e}")
 

@@ -15,47 +15,35 @@ DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.
 MODEL_ID = "gemini-2.0-flash" 
 
 def initialize_firebase():
+    """Initializes Firebase using a temporary file buffer for the Service Account."""
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
-                # 1. Start with a fresh copy of the secrets
+                # 1. Load secrets into a dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 2. Precise Key Cleaning
-                # Instead of aggressive stripping, we only fix the literal \n 
-                # and ensure the headers exist.
+                # 2. Fix the private key format (handling literal \n)
+                # This is essential for keys copied from JSON files
                 raw_key = creds_dict["private_key"]
+                creds_dict["private_key"] = raw_key.replace("\\n", "\n").strip().strip('"')
                 
-                # Repair literal \n if they exist
-                fixed_key = raw_key.replace("\\n", "\n")
-                
-                # Strip any outer accidental quotes or trailing spaces
-                fixed_key = fixed_key.strip().strip('"').strip("'")
-                
-                # Ensure the PEM block is complete
-                if not fixed_key.startswith("-----BEGIN PRIVATE KEY-----"):
-                    fixed_key = f"-----BEGIN PRIVATE KEY-----\n{fixed_key}"
-                if not fixed_key.endswith("-----END PRIVATE KEY-----"):
-                    fixed_key = f"{fixed_key}\n-----END PRIVATE KEY-----"
-                
-                creds_dict["private_key"] = fixed_key
-
-                # 3. Use a context manager for the temporary file
+                # 3. Write to a temporary JSON file
+                # This mimics the local .json file Firebase expects natively
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as tp:
                     json.dump(creds_dict, tp)
                     temp_path = tp.name
                 
                 try:
-                    # 4. Initialize
+                    # 4. Initialize via the temp file path
                     cred = credentials.Certificate(temp_path)
                     firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
-                    print("🚀 Firebase Success via File Buffer!")
+                    print("🚀 Firebase Initialized Successfully!")
                 finally:
-                    # 5. Guaranteed cleanup
+                    # 5. Clean up the file immediately after initialization
                     if os.path.exists(temp_path):
                         os.unlink(temp_path)
             else:
-                st.error("Firebase credentials missing in Secrets.")
+                st.error("Firebase credentials missing in Secrets dashboard.")
         except Exception as e:
             st.error(f"Handshake Failed: {e}")
 
@@ -187,8 +175,8 @@ if not is_logged_in:
         # --- UPDATED FOR 2026 COMPLIANCE ---
         st.image(
     "https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", 
-    width="stretch"
-           )
+    width="stretch" 
+)
         st.stop()
 
 # --- 6. CHAT INTERFACE (USER VIEW) ---
