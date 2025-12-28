@@ -38,7 +38,7 @@ st.markdown("""
     div.stButton > button:hover {
         background-color: #333333;
         transform: scale(1.02);
-        color: white;
+        color: white !important;
     }
 
     .footer-link {
@@ -56,7 +56,7 @@ if not firebase_admin._apps:
     try:
         if "firebase_credentials" in st.secrets:
             firebase_creds = dict(st.secrets["firebase_credentials"])
-            # THE FIX: Ensuring the private key is read correctly in the cloud
+            # CRITICAL FIX: Convert \n characters to real newlines for the JWT signature
             firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
             
             cred = credentials.Certificate(firebase_creds)
@@ -83,7 +83,7 @@ if st.button("Sign Up"):
             user = auth.create_user(email=email, password=password)
             
             # 2. Initialize User Data in Realtime Database
-            # We match the 'chunks' structure used in AIMentor.py
+            # We initialize 'chat_history' as an empty list to match AIMentor.py
             db.reference(f"users/{user.uid}").set({
                 "email": email,
                 "chat_history": []
@@ -91,7 +91,8 @@ if st.button("Sign Up"):
             
             st.balloons()
             st.success("Account created! Redirecting to login...")
-            # Use relative path for better compatibility
+            
+            # Use relative pathing for Streamlit Cloud
             st.switch_page("pages/login.py")
             
         except Exception as e:

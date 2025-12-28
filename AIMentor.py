@@ -1,8 +1,7 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, db
-import google.generativeai as genai 
-from google import genai as genai_v2 
+from google import genai  # Modern package
 from google.genai import types
 from fpdf import FPDF
 import PIL.Image
@@ -29,8 +28,8 @@ if not firebase_admin._apps:
     except Exception as e:
         st.error(f"Firebase Initialization Failed: {e}")
 
-# Initialize AI Client
-client = genai_v2.Client(api_key=API_KEY)
+# Initialize Modern AI Client (Replaces deprecated google.generativeai)
+client = genai.Client(api_key=API_KEY)
 
 # --- 2. PAGE CONFIG & STYLING ---
 st.set_page_config(page_title="AI Professional Workspace", layout="wide", initial_sidebar_state="collapsed")
@@ -99,7 +98,7 @@ if "logged_in" not in st.session_state:
 
 is_logged_in = st.session_state.logged_in
 
-# Header UI
+# Header UI - Updated with width="stretch" for 2026 compliance
 cols = st.columns([2, 0.7, 0.7, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
 with cols[0]:
     st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
@@ -140,7 +139,8 @@ if not is_logged_in:
         if st.button("Unlock Your AI Workspace ✨", key="main_unlock"):
             st.switch_page("pages/login.py")
     with main_col2:
-        st.image("https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", use_container_width=True)
+        # Replaced use_container_width with width="stretch"
+        st.image("https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", width="stretch")
     st.stop()
 
 # --- 6. CHAT INTERFACE (IF LOGGED IN) ---
@@ -196,6 +196,7 @@ if prompt := st.chat_input(f"Consulting {feature}..."):
                 img = PIL.Image.open(up_img)
                 input_data.append(img)
             
+            # Using modern Client structure
             response = client.models.generate_content(
                 model=MODEL_ID,
                 contents=input_data,
