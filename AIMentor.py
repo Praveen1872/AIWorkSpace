@@ -12,27 +12,32 @@ import os
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 MODEL_ID = "gemini-2.0-flash-exp" 
-# --- THE FINAL JWT SIGNATURE REPAIR BLOCK ---
+# --- THE SURGICAL PEM REPAIR ---
 if not firebase_admin._apps:
     try:
         if "firebase_credentials" in st.secrets:
-            # 1. Convert secrets object to a standard dictionary
             creds_dict = dict(st.secrets["firebase_credentials"])
             
-            # 2. Get the raw key and strip any accidental whitespace
+            # 1. Clean the key of all literal escapings and existing headers
             raw_key = creds_dict["private_key"]
             
-            # 3. THE CRITICAL FIX:
-            # We must handle keys that are "double escaped" or contain literal \n text.
-            # This handles both standard JSON exports and manual pastes.
-            if "\\n" in raw_key:
-                cleaned_key = raw_key.replace("\\n", "\n")
-            else:
-                cleaned_key = raw_key
-                
-            creds_dict["private_key"] = cleaned_key
+            # Remove literal \n, headers, footers, and quotes to get the raw base64 string
+            clean_key = (
+                raw_key.replace("\\n", "\n")
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .strip()
+                .strip('"')
+                .strip("'")
+            )
             
-            # 4. Initialize
+            # 2. Re-wrap the key with proper, physical newlines
+            # The library MUST see the header on its own line.
+            formatted_key = f"-----BEGIN PRIVATE KEY-----\n{clean_key}\n-----END PRIVATE KEY-----\n"
+            
+            creds_dict["private_key"] = formatted_key
+            
+            # 3. Initialize using the repaired dictionary
             cred = credentials.Certificate(creds_dict)
             firebase_admin.initialize_app(cred, {
                 'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
@@ -40,8 +45,8 @@ if not firebase_admin._apps:
         else:
             st.error("Credentials not found in Streamlit Secrets.")
     except Exception as e:
-        st.error(f"Authentication Error: {e}")
-
+        # This will now show us exactly what the library is seeing if it fails
+        st.error(f"PEM Reconstruction Failed: {e}")
 # Initialize Modern AI Client (Replaces deprecated google.generativeai)
 client = genai.Client(api_key=API_KEY)
 

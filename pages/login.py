@@ -48,20 +48,41 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-# --- 2. FIREBASE INITIALIZATION ---
+# --- THE SURGICAL PEM REPAIR ---
 if not firebase_admin._apps:
     try:
         if "firebase_credentials" in st.secrets:
-            firebase_creds = dict(st.secrets["firebase_credentials"])
-            # Essential fix for Cloud Deployment: Interpret \n as real newlines
-            firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
+            creds_dict = dict(st.secrets["firebase_credentials"])
             
-            cred = credentials.Certificate(firebase_creds)
-            firebase_admin.initialize_app(cred)
+            # 1. Clean the key of all literal escapings and existing headers
+            raw_key = creds_dict["private_key"]
+            
+            # Remove literal \n, headers, footers, and quotes to get the raw base64 string
+            clean_key = (
+                raw_key.replace("\\n", "\n")
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .strip()
+                .strip('"')
+                .strip("'")
+            )
+            
+            # 2. Re-wrap the key with proper, physical newlines
+            # The library MUST see the header on its own line.
+            formatted_key = f"-----BEGIN PRIVATE KEY-----\n{clean_key}\n-----END PRIVATE KEY-----\n"
+            
+            creds_dict["private_key"] = formatted_key
+            
+            # 3. Initialize using the repaired dictionary
+            cred = credentials.Certificate(creds_dict)
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+            })
+        else:
+            st.error("Credentials not found in Streamlit Secrets.")
     except Exception as e:
-        st.error(f"Firebase Initialization Failed: {e}")
-
+        # This will now show us exactly what the library is seeing if it fails
+        st.error(f"PEM Reconstruction Failed: {e}")
 # --- 3. LOGIN UI ---
 st.markdown("<h1 class='title-text'>🚀 AI Mentor Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Welcome back! Please sign in to access your personal AI researcher.</p>", unsafe_allow_html=True)
