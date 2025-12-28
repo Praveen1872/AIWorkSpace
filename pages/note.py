@@ -13,7 +13,7 @@ if not st.session_state.get("logged_in", False):
     st.switch_page("pages/login.py")
 
 # --- HEADER BUTTONS ---
-h_cols = st.columns([2, 0.7, 0.9, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
+h_cols = st.columns([2, 0.9, 0.9, 0.9, 0.9, 1.8, 1], vertical_alignment="center")
 
 with h_cols[0]:
     st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
