@@ -2,9 +2,8 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, auth, db
 
-
+# --- 1. PAGE CONFIGURATION & STYLING ---
 st.set_page_config(page_title="AI Workspace Register", page_icon="🛡️", layout="centered")
-
 
 st.markdown("""
 <style>
@@ -22,14 +21,12 @@ st.markdown("""
     .title-text { text-align: center; font-weight: 800; color: #1A1A1A; font-size: 2.2rem; }
     .subtitle-text { text-align: center; color: #666; margin-bottom: 30px; }
 
-    /* Primary Action Button (Register) */
+    /* Action Button styling */
     div.stButton > button {
         display: block;
-        margin: -10px ;
-        margin-right:100px;
+        margin: 0 auto;
         width: 100%;
         border-radius: 50px;
-        padding: 5px 40px;
         height: 3.5em;
         background-color: #1A1A1A;
         color: white;
@@ -44,7 +41,6 @@ st.markdown("""
         color: white;
     }
 
-    /* Link Style (No Underline) */
     .footer-link {
         color: #1A1A1A;
         font-weight: 700;
@@ -52,20 +48,15 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-import streamlit as st
-import firebase_admin
-from firebase_admin import credentials
 
+# --- 2. FIREBASE INITIALIZATION ---
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 
 if not firebase_admin._apps:
     try:
         if "firebase_credentials" in st.secrets:
-            # 1. Convert the secret to a dictionary
             firebase_creds = dict(st.secrets["firebase_credentials"])
-            
-            # 2. THE FIX: Convert literal \n text into real newlines
-            # This allows Firebase to verify the 'JWT Signature'
+            # THE FIX: Ensuring the private key is read correctly in the cloud
             firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
             
             cred = credentials.Certificate(firebase_creds)
@@ -75,45 +66,45 @@ if not firebase_admin._apps:
     except Exception as e:
         st.error(f"Firebase Connection Failed: {e}")
 
-
+# --- 3. REGISTRATION UI ---
 st.markdown("<h1 class='title-text'>🛡️ Join the Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Create your secure account to start your AI-powered research.</p>", unsafe_allow_html=True)
-
 
 email = st.text_input("📧 Work Email", placeholder="name@company.com")
 password = st.text_input("🔒 Password", type="password", placeholder="Create a strong password")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([1, 1.2, 1])
-with col2:
-    if st.button("Sign Up"):
-        if email and password:
-            try:
-                # 1. Create Auth User
-                user = auth.create_user(email=email, password=password)
-                
-                
-                db.reference(f"users/{user.uid}").set({
-                    "email": email,
-                    "chunks": {"chat": [], "docs": {}}
-                })
-                
-                st.balloons()
-                st.success("Account created! Redirecting to login...")
-                st.switch_page(r"pages\login.py")
-                
-            except Exception as e:
-                st.error(f"Registration failed: {e}")
-        else:
-            st.warning("Please fill in all fields.")
+# Signup Logic
+if st.button("Sign Up"):
+    if email and password:
+        try:
+            # 1. Create User in Firebase Authentication
+            user = auth.create_user(email=email, password=password)
+            
+            # 2. Initialize User Data in Realtime Database
+            # We match the 'chunks' structure used in AIMentor.py
+            db.reference(f"users/{user.uid}").set({
+                "email": email,
+                "chat_history": []
+            })
+            
+            st.balloons()
+            st.success("Account created! Redirecting to login...")
+            # Use relative path for better compatibility
+            st.switch_page("pages/login.py")
+            
+        except Exception as e:
+            st.error(f"Registration failed: {e}")
+    else:
+        st.warning("Please fill in all fields.")
 
-
+# --- 4. FOOTER ---
 st.markdown("<hr style='border-top: 1px solid #E0DEDD; margin-top: 40px;'>", unsafe_allow_html=True)
 
 st.markdown(
     """
-    <div style="text-align: center; color: #666; font-family: sans-serif;">
+    <div style="text-align: center; color: #666;">
         Already have an account? 
         <a href="/login" target="_self" class="footer-link">
             Log In here 🚀
