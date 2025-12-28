@@ -8,28 +8,32 @@ import PIL.Image
 import io
 import os
 
-# FIX: Ensure genai is imported correctly
-import google.generativeai as genai 
+import streamlit as st
+import firebase_admin
+from firebase_admin import credentials
 
-# 1. Setup API Keys
 API_KEY = st.secrets["GEMINI_API_KEY"]
+# Use your actual database URL
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 
-# 2. Configure GenAI (Fixes the NameError)
-genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-# 3. Initialize Firebase (Fixes Invalid JWT Signature)
 if not firebase_admin._apps:
     try:
-        firebase_creds = dict(st.secrets["firebase_credentials"])
-        # The critical formatting fix for cloud servers
-        firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
-        
-        cred = credentials.Certificate(firebase_creds)
-        firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
+        if "firebase_credentials" in st.secrets:
+            # 1. Fetch the secret as a dictionary
+            firebase_creds = dict(st.secrets["firebase_credentials"])
+            
+            # 2. THE CRITICAL FIX: 
+            # We must ensure literal '\n' characters are treated as real newlines.
+            firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
+            
+            # 3. Initialize using the dictionary
+            cred = credentials.Certificate(firebase_creds)
+            firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
+        else:
+            st.error("Secrets not found in Dashboard!")
     except Exception as e:
-        st.error(f"Firebase Init Error: {e}")
+        st.error(f"Handshake failed: {e}")
+
 
 client = genai.Client(api_key=API_KEY)
 MODEL_ID = "gemini-2.5-flash-lite" 
