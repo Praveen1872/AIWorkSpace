@@ -123,7 +123,7 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
         focus = f"Slide {active_idx+1}" if active_idx is not None else "the whole deck"
         system_instr = f"Context: {json.dumps(current_data)}. Update {focus} based on: {prompt}. " + system_instr
 
-    model_list = ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-2.5-flash-lite"]
+    model_list = ["gemini-2.5-flash-lite"]
     
     for model_name in model_list:
         try:
