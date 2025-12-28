@@ -28,7 +28,7 @@ st.markdown("""
         color: black;
         border: none;
         height: 3.2em; /* Slightly taller for better touch/click experience */
-        width: 111%;
+        width: 200%;
         font-weight: 600;
         letter-spacing: 0.3px;
         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05); /* Subtle depth */
