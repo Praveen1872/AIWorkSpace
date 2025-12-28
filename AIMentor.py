@@ -12,48 +12,38 @@ import os
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 MODEL_ID = "gemini-2.0-flash-exp" 
-# --- THE BYTE-PERFECT PEM RECONSTRUCTION ---
-if not firebase_admin._apps:
-    try:
-        if "firebase_credentials" in st.secrets:
-            creds_dict = dict(st.secrets["firebase_credentials"])
-            
-            # 1. Clean the key of all literal escapings and existing headers
-            raw_key = creds_dict["private_key"]
-            
-            # Remove literal \n, headers, footers, spaces, and quotes
-            clean_body = (
-                raw_key.replace("\\n", "")
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replace(" ", "")
-                .replace("\n", "")
-                .replace("\r", "")
-                .strip()
-                .strip('"')
-                .strip("'")
-            )
-            
-            # 2. THE CRITICAL STEP: Re-wrap the body at 64 characters per line
-            # This ensures the '=' padding is exactly where the library expects it
-            lines = [clean_body[i:i+64] for i in range(0, len(clean_body), 64)]
-            fixed_body = "\n".join(lines)
-            
-            # 3. Reconstruct the final PEM format
-            final_key = f"-----BEGIN PRIVATE KEY-----\n{fixed_body}\n-----END PRIVATE KEY-----\n"
-            creds_dict["private_key"] = final_key
-            
-            # 4. Initialize using the repaired dictionary
-            cred = credentials.Certificate(creds_dict)
-            firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-            })
-            print("🚀 Firebase successfully initialized!")
-        else:
-            st.error("Credentials not found in Streamlit Secrets.")
-    except Exception as e:
-        st.error(f"PEM Reconstruction Failed: {e}")
+def initialize_firebase():
+    if not firebase_admin._apps:
+        try:
+            if "firebase_credentials" in st.secrets:
+                creds_dict = dict(st.secrets["firebase_credentials"])
+                
+                # 1. Clean all formatting (literal \n, spaces, etc.)
+                raw_key = creds_dict["private_key"]
+                clean_body = (
+                    raw_key.replace("\\n", "")
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replace(" ", "")
+                    .replace("\n", "")
+                    .strip()
+                )
+                
+                # 2. Re-wrap into 64-character lines (Standard PEM format)
+                wrapped_body = "\n".join([clean_body[i:i+64] for i in range(0, len(clean_body), 64)])
+                
+                # 3. Final Reconstruction
+                creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{wrapped_body}\n-----END PRIVATE KEY-----\n"
+                
+                cred = credentials.Certificate(creds_dict)
+                firebase_admin.initialize_app(cred, {
+                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+                })
+                print("🚀 Firebase Success!")
+        except Exception as e:
+            st.error(f"Byte Repair Failed: {e}")
 
+initialize_firebase()
 client = genai.Client(api_key=API_KEY)
 
 # --- 2. PAGE CONFIG & STYLING ---
