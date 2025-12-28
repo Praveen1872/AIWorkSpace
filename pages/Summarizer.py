@@ -24,11 +24,11 @@ st.markdown("""
     /* 3. Button Design (Orange Professional Theme) */
     div.stButton > button { 
         border-radius: 12px; 
-        background-color: #FF6042; 
-        color: white;
+        background-color: white; 
+        color: black;
         border: none;
         height: 3.2em; /* Slightly taller for better touch/click experience */
-        width: 100%;
+        width: 111%;
         font-weight: 600;
         letter-spacing: 0.3px;
         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05); /* Subtle depth */
