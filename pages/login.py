@@ -48,35 +48,42 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+# --- THE FINAL RESILIENCE REPAIR ---
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 1. Clean all formatting (literal \n, spaces, etc.)
+                # 1. Get the raw key and remove ONLY the headers/footers first
                 raw_key = creds_dict["private_key"]
-                clean_body = (
-                    raw_key.replace("\\n", "")
-                    .replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replace(" ", "")
-                    .replace("\n", "")
-                    .strip()
-                )
                 
-                # 2. Re-wrap into 64-character lines (Standard PEM format)
-                wrapped_body = "\n".join([clean_body[i:i+64] for i in range(0, len(clean_body), 64)])
+                # Remove headers, footers, and literal \n strings
+                inner_key = raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
+                inner_key = inner_key.replace("-----END PRIVATE KEY-----", "")
+                inner_key = inner_key.replace("\\n", "")
                 
-                # 3. Final Reconstruction
-                creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{wrapped_body}\n-----END PRIVATE KEY-----\n"
+                # 2. CRITICAL: Remove every single character that IS NOT a Base64 character
+                # (A-Z, a-z, 0-9, +, /, =)
+                # This kills hidden tabs, spaces, and \r characters
+                clean_body = re.sub(r'[^A-Za-z0-9+/=]', '', inner_key)
                 
+                # 3. Standard PEM Wrapping (64 chars per line)
+                lines = [clean_body[i:i+64] for i in range(0, len(clean_body), 64)]
+                formatted_key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
+                
+                creds_dict["private_key"] = formatted_key
+                
+                # 4. Initialize
                 cred = credentials.Certificate(creds_dict)
                 firebase_admin.initialize_app(cred, {
                     'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
                 })
-                print("🚀 Firebase Success!")
+                print("🚀 Firebase Connected Successfully!")
+            else:
+                st.error("Missing firebase_credentials in Secrets.")
         except Exception as e:
+            # We print the error to logs for debugging
             st.error(f"Byte Repair Failed: {e}")
 
 initialize_firebase()
