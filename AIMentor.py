@@ -12,42 +12,46 @@ import os
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 MODEL_ID = "gemini-2.0-flash-exp" 
-# --- THE SURGICAL PEM REPAIR ---
-if not firebase_admin._apps:
-    try:
-        if "firebase_credentials" in st.secrets:
-            creds_dict = dict(st.secrets["firebase_credentials"])
-            
-            # 1. Clean the key of all literal escapings and existing headers
-            raw_key = creds_dict["private_key"]
-            
-            # Remove literal \n, headers, footers, and quotes to get the raw base64 string
-            clean_key = (
-                raw_key.replace("\\n", "\n")
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .strip()
-                .strip('"')
-                .strip("'")
-            )
-            
-            # 2. Re-wrap the key with proper, physical newlines
-            # The library MUST see the header on its own line.
-            formatted_key = f"-----BEGIN PRIVATE KEY-----\n{clean_key}\n-----END PRIVATE KEY-----\n"
-            
-            creds_dict["private_key"] = formatted_key
-            
-            # 3. Initialize using the repaired dictionary
-            cred = credentials.Certificate(creds_dict)
-            firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-            })
-        else:
-            st.error("Credentials not found in Streamlit Secrets.")
-    except Exception as e:
-        # This will now show us exactly what the library is seeing if it fails
-        st.error(f"PEM Reconstruction Failed: {e}")
-# Initialize Modern AI Client (Replaces deprecated google.generativeai)
+import streamlit as st
+import firebase_admin
+from firebase_admin import credentials, auth, db
+
+# --- THE CLEAN-ROOM REPAIR BLOCK ---
+def initialize_firebase():
+    if not firebase_admin._apps:
+        try:
+            if "firebase_credentials" in st.secrets:
+                # 1. Standardize the dictionary
+                creds_dict = dict(st.secrets["firebase_credentials"])
+                
+                # 2. SURGICAL REPAIR OF THE PRIVATE KEY
+                # This removes all literal backslashes and ensures proper PEM wrapping
+                raw_key = creds_dict["private_key"]
+                
+                # Replace literal \n and remove any stray quotes or spaces
+                clean_key = raw_key.replace("\\n", "\n").strip().strip('"').strip("'")
+                
+                # Ensure the header and footer are exactly on their own lines
+                if "-----BEGIN PRIVATE KEY-----" not in clean_key:
+                    clean_key = f"-----BEGIN PRIVATE KEY-----\n{clean_key}"
+                if "-----END PRIVATE KEY-----" not in clean_key:
+                    clean_key = f"{clean_key}\n-----END PRIVATE KEY-----"
+                
+                # Final normalization: Ensure no double headers/footers
+                clean_key = clean_key.replace("\n\n", "\n")
+                creds_dict["private_key"] = clean_key
+                
+                # 3. Initialize
+                cred = credentials.Certificate(creds_dict)
+                firebase_admin.initialize_app(cred, {
+                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+                })
+            else:
+                st.error("Credentials key missing in Streamlit Secrets!")
+        except Exception as e:
+            st.error(f"JWT Signature Fix Failed: {e}")
+
+initialize_firebase()
 client = genai.Client(api_key=API_KEY)
 
 # --- 2. PAGE CONFIG & STYLING ---
