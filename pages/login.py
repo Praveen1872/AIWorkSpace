@@ -50,50 +50,30 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-import base64
-
 def initialize_firebase():
+    """Initializes Firebase using the updated Secrets dictionary."""
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
+                # 1. Convert the TOML section to a Python dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 1. Get the raw body only
-                raw_key = creds_dict["private_key"]
-                # Remove headers, footers, and all whitespace/newlines
-                clean_body = (
-                    raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replace("\\n", "")
-                    .replace("\n", "")
-                    .replace("\r", "")
-                    .replace(" ", "")
-                    .strip()
-                )
-                
-                # 2. Convert the Base64 string directly to Binary
-                # This bypasses the "PEM" text parser that is causing the byte error
-                try:
-                    key_bytes = base64.b64decode(clean_body)
-                except Exception as e:
-                    st.error(f"Base64 Decoding Failed: {e}")
-                    return
-
-                # 3. Use the credentials from the dict but use the cleaned key
-                # We re-wrap it perfectly one last time
-                lines = [clean_body[i:i+64] for i in range(0, len(clean_body), 64)]
-                creds_dict["private_key"] = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
-
-                # 4. Initialize
+                # 2. Use the dictionary to create the credential object
                 cred = credentials.Certificate(creds_dict)
-                firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
-                print("🚀 Firebase Success!")
+                
+                # 3. Initialize the app
+                firebase_admin.initialize_app(cred, {
+                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+                })
+                st.toast("🚀 Firebase Connected Successfully!")
+            else:
+                st.error("Credential Error: 'firebase_credentials' not found in Secrets.")
         except Exception as e:
             st.error(f"Handshake Failed: {e}")
 
+# Run the function
 initialize_firebase()
+
 # --- 3. LOGIN UI ---
 st.markdown("<h1 class='title-text'>🚀 AI Mentor Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Welcome back! Please sign in to access your personal AI researcher.</p>", unsafe_allow_html=True)

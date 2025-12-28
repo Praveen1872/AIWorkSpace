@@ -9,52 +9,38 @@ import io
 import os
 import tempfile
 import json
+
+
 # --- 1. FIREBASE & API SETUP ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-MODEL_ID = "gemini-2.0-flash" 
-import base64
-
 def initialize_firebase():
+    """Initializes Firebase using only Streamlit Secrets."""
     if not firebase_admin._apps:
         try:
+            # 1. Look for secrets in the Streamlit Cloud dashboard
             if "firebase_credentials" in st.secrets:
+                # Convert the TOML secrets into a Python Dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 1. Get the raw body only
-                raw_key = creds_dict["private_key"]
-                # Remove headers, footers, and all whitespace/newlines
-                clean_body = (
-                    raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replace("\\n", "")
-                    .replace("\n", "")
-                    .replace("\r", "")
-                    .replace(" ", "")
-                    .strip()
-                )
-                
-                # 2. Convert the Base64 string directly to Binary
-                # This bypasses the "PEM" text parser that is causing the byte error
-                try:
-                    key_bytes = base64.b64decode(clean_body)
-                except Exception as e:
-                    st.error(f"Base64 Decoding Failed: {e}")
-                    return
-
-                # 3. Use the credentials from the dict but use the cleaned key
-                # We re-wrap it perfectly one last time
-                lines = [clean_body[i:i+64] for i in range(0, len(clean_body), 64)]
-                creds_dict["private_key"] = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
-
-                # 4. Initialize
+                # Use the dictionary directly as credentials
                 cred = credentials.Certificate(creds_dict)
-                firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
-                print("🚀 Firebase Success!")
+                firebase_admin.initialize_app(cred, {
+                    'databaseURL': DB_URL
+                })
+                st.toast("🚀 Connected to Firebase via Secrets!")
+            else:
+                st.error("❌ Configuration Error: 'firebase_credentials' not found in Streamlit Secrets.")
+                st.info("Please add your credentials to the App Settings > Secrets dashboard.")
+                
         except Exception as e:
-            st.error(f"Handshake Failed: {e}")
+            # This captures any formatting issues in your private_key
+            st.error(f"⚠️ Handshake Failed: {e}")
 
+# Run initialization
 initialize_firebase()
+client = genai.Client(api_key=API_KEY)
+# Initialize the Gemini Client
 client = genai.Client(api_key=API_KEY)
 
 # --- 2. PAGE CONFIG & STYLING ---
