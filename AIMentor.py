@@ -168,9 +168,11 @@ if not is_logged_in:
         if st.button("Get Started for Free ✨", key="main_unlock"):
             st.switch_page("pages/register.py")
     with main_col2:
+        # --- UPDATED FOR 2026 COMPLIANCE ---
         st.image(
     "https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", 
-    use_container_width=True) 
+    width="stretch"
+           )
         st.stop()
 
 # --- 6. CHAT INTERFACE (USER VIEW) ---
