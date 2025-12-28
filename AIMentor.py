@@ -67,6 +67,9 @@ st.markdown("""
         width: 100%;
         font-weight: 600;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-top: -50px;
+        gap: 10px;
+        margin-right: 20px;
     }
     
     div.stButton > button:hover {
