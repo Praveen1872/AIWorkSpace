@@ -27,7 +27,7 @@ with h_cols[2]:
         st.switch_page("pages/word_editor.py")
 
 with h_cols[3]:
-    if st.button("Make Notes 📓", use_container_width=True, type="primary"):
+    if st.button("Notes 📓", use_container_width=True, ):
         st.switch_page("pages/note.py")
 
 with h_cols[4]:
@@ -43,36 +43,28 @@ st.markdown(
     "<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>",
     unsafe_allow_html=True
 )
+
+# --- STYLING ---
 st.markdown("""
 <style>
-/* Hide default Streamlit button */
-div.stButton > button {
-    background-color: #ff6242;
-    color: white;
-    border-radius: 18px;
-    height: 70px;
-    font-size: 16px;
-    font-weight: 600;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
+div[data-baseweb="input"],
+div[data-baseweb="textarea"] {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
-div.stButton > button:hover {
-    background-color: #ff4a2a;
-    color: white;
+input, textarea {
+    border: none !important;
+    box-shadow: none !important;
 }
 
-div.stButton > button:focus {
-    outline: none;
-    box-shadow: none;
+input {
+    border-bottom: 1px solid #ddd !important;
+    border-radius: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 # --- MAIN CONTENT ---
 st.title("📓 Research Notebook")
