@@ -62,7 +62,7 @@ st.markdown("""
         color: white;
         border: none;
         height: 3.2em; /* Slightly taller for better touch/click experience */
-        width: 126%;
+        width: 116%;
         font-weight: 600;
         letter-spacing: 0.3px;
         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05); /* Subtle depth */
