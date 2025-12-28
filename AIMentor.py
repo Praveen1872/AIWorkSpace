@@ -34,7 +34,7 @@ def initialize_firebase():
         except Exception as e:
             st.error(f"Firebase Initialization Failed: {e}")
 
-
+initialize_firebase()
 client = genai.Client(api_key=API_KEY)
 # Initialize the Gemini Client
 MODEL_ID = "gemini-2.5-flash-lite"

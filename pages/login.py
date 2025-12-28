@@ -51,6 +51,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 DB_URL = "https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
@@ -74,7 +75,7 @@ def initialize_firebase():
 
         except Exception as e:
             st.error(f"Firebase Initialization Failed: {e}")
-
+initialize_firebase()
 # --- 3. LOGIN UI ---
 st.markdown("<h1 class='title-text'>🚀 AI Mentor Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Welcome back! Please sign in to access your personal AI researcher.</p>", unsafe_allow_html=True)

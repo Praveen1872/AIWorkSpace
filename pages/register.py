@@ -52,7 +52,7 @@ def initialize_firebase():
         except Exception as e:
             st.error(f"Firebase Initialization Failed: {e}")
 
-
+initialize_firebase()
 # --- 3. REGISTRATION UI ---
 st.markdown("<h1 class='title-text'>🛡️ Join the Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Create your secure account to start your AI-powered research.</p>", unsafe_allow_html=True)
