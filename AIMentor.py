@@ -161,10 +161,9 @@ if not is_logged_in:
             st.switch_page("pages/register.py")
     with main_col2:
         # --- UPDATED FOR 2026 COMPLIANCE ---
-        st.image(
-    r"C:\Teju\25335A0510(Praveen)\copy\wrokspace\assets\banner2_desktop.png", 
-    use_container_width=True 
-)
+        st.image("assets/banner2_desktop.png", use_container_width=True)
+
+
         st.stop()
 
 # --- 6. CHAT INTERFACE (USER VIEW) ---
