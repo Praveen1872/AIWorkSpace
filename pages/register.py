@@ -56,23 +56,24 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials
 
-# Use a consistent naming for the DB
+# Use your actual database URL
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 
 if not firebase_admin._apps:
     try:
-        # Fetching the dictionary from Streamlit Secrets
         if "firebase_credentials" in st.secrets:
+            # 1. Fetch the secret as a dictionary
             firebase_creds = dict(st.secrets["firebase_credentials"])
             
-            # THE KEY FIX: Replace the literal string \n with actual newline characters
-            # This is what prevents the 'Invalid JWT Signature' error
+            # 2. THE CRITICAL FIX: 
+            # We must ensure literal '\n' characters are treated as real newlines.
             firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
             
+            # 3. Initialize using the dictionary
             cred = credentials.Certificate(firebase_creds)
             firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
         else:
-            st.error("Secrets not found in dashboard!")
+            st.error("Secrets not found in Dashboard!")
     except Exception as e:
         st.error(f"Handshake failed: {e}")
 
