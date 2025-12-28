@@ -4,12 +4,12 @@ from docx import Document
 from io import BytesIO
 import re
 
-# --- LOGIN CHECK ---
+
 is_logged_in = st.session_state.get('logged_in', False)
 if not is_logged_in:
     st.switch_page("pages/login.py")
 
-# --- HEADER NAV ---
+
 h_cols = st.columns([2, 0.7, 0.7, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
 with h_cols[0]: 
     st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
@@ -19,7 +19,7 @@ with h_cols[1]:
 with h_cols[2]: 
     if st.button("Word 📝", use_container_width=True): st.switch_page("pages/word_editor.py")
 with h_cols[3]: 
-    if st.button("Make Notes 📓", use_container_width=True): st.switch_page("pages/note.py")
+    if st.button("Notes 📓", use_container_width=True): st.switch_page("pages/note.py")
 with h_cols[4]: 
     if st.button("Summarizer 📝", use_container_width=True, type="primary"): st.switch_page("pages/Summarizer.py")
 with h_cols[6]:
@@ -29,7 +29,7 @@ with h_cols[6]:
 
 st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", unsafe_allow_html=True)
 
-# --- HELPER FUNCTIONS ---
+
 def clean_text(text):
     return re.sub(r'\**\*|#+', '', text).strip()
 
@@ -43,8 +43,6 @@ def create_docx(content):
         if line.startswith('---'):
             doc.add_page_break()
             continue
-
-        # --- HEADING LOGIC ---
         if line.startswith('#'):
             level = 0
             if line.startswith('###'): level = 2
@@ -68,7 +66,7 @@ def create_docx(content):
     buffer.seek(0)
     return buffer
 
-# --- GEMINI CLIENT ---
+
 try:
     client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 except Exception as e:
@@ -79,7 +77,6 @@ st.write("Refine and export your research into polished Microsoft Word documents
 
 topic = st.text_input("Report Topic", placeholder="e.g., The impact of renewable energy on global economy")
 
-# --- GENERATE REPORT ---
 if st.button("Generate Report ", use_container_width=True):
     if topic:
         with st.spinner("AI Mentor is drafting your report..."):
@@ -99,7 +96,7 @@ if st.button("Generate Report ", use_container_width=True):
     else:
         st.warning("Please enter a topic to begin.")
 
-# --- REVIEW & EXPORT ---
+
 if "report_text" in st.session_state:
     final_text = st.text_area("Review & Edit Draft", value=st.session_state.report_text, height=500)
     word_file = create_docx(final_text)

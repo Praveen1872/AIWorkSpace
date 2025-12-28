@@ -7,15 +7,13 @@ from fpdf import FPDF
 import PIL.Image
 import io
 
-
-# --- 1. FIREBASE & API SETUP ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             creds_dict = dict(st.secrets["firebase_credentials"])
 
-            # 🔒 Clean private key strictly
+        
             private_key = creds_dict["private_key"]
             private_key = private_key.strip()
             private_key = private_key.replace("\r\n", "\n").replace("\r", "\n")
@@ -36,9 +34,9 @@ def initialize_firebase():
 
 initialize_firebase()
 client = genai.Client(api_key=API_KEY)
-# Initialize the Gemini Client
+
 MODEL_ID = "gemini-2.5-flash-lite"
-# --- 2. PAGE CONFIG & STYLING ---
+
 st.set_page_config(page_title="AI Professional Workspace", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
@@ -112,13 +110,13 @@ def export_last_chat_to_pdf(user_text, ai_text):
     
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 4. NAVIGATION & AUTH LOGIC ---
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 is_logged_in = st.session_state.logged_in
 
-# Header UI - Modern stretch layout
+
 cols = st.columns([2, 0.7, 0.7, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
 with cols[0]:
     st.markdown("<h3 style='margin:0; font-weight:800;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
@@ -144,7 +142,7 @@ else:
 
 st.markdown("<hr>", unsafe_allow_html=True)
 
-# --- 5. LANDING PAGE (GUEST VIEW) ---
+
 if not is_logged_in:
     main_col1, main_col2 = st.columns([1.2, 1], gap="large")
     with main_col1:
@@ -160,24 +158,24 @@ if not is_logged_in:
         if st.button("Get Started ", key="main_unlock"):
             st.switch_page("pages/register.py")
     with main_col2:
-        # --- UPDATED FOR 2026 COMPLIANCE ---
+        
         st.image("assets/banner2_desktop.png", use_container_width=True)
 
 
         st.stop()
 
-# --- 6. CHAT INTERFACE (USER VIEW) ---
+
 user_uid = st.session_state.get('user_uid', 'guest_user')
 chat_ref = db.reference(f"users/{user_uid}/chat_history")
 
-# Load persistent chat history from Firebase
+
 if "messages" not in st.session_state:
     saved_history = chat_ref.get()
     st.session_state.messages = saved_history if saved_history else []
 
 with st.sidebar:
     st.markdown("<h2 style='color: #FF6042;'>🛠️ Workspace</h2>", unsafe_allow_html=True)
-    feature = st.radio("Model Context:", ["Doubts Solver", "Career Guide", "Research Assistant"])
+    feature = st.radio("Model Context:", ["Doubts Solver", "Career Guide"])
     st.markdown("---")
     deep_dive = st.toggle("Detailed Mode (Deep Dive)", value=False)
     if st.button("🗑️ Reset All Progress"):
@@ -185,7 +183,7 @@ with st.sidebar:
         chat_ref.delete()
         st.rerun()
 
-# Display Chat History
+
 chat_display = st.container()
 with chat_display:
     for i, message in enumerate(st.session_state.messages):
@@ -196,13 +194,13 @@ with chat_display:
                 pdf_bytes = export_last_chat_to_pdf(user_q, message["content"])
                 st.download_button("📝 Export as PDF", pdf_bytes, f"note_{i}.pdf", key=f"dl_{i}")
 
-# Multimedia input expander
+
 with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False):
     up_img = st.file_uploader("Upload visual data for the AI to analyze", type=["jpg", "jpeg", "png"])
     if up_img:
         st.image(up_img, caption="Image Attachment Ready", width=300)
 
-# Process User Input
+
 if prompt := st.chat_input(f"Ask your {feature}..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with chat_display:
@@ -212,7 +210,7 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
     with st.chat_message("assistant"):
         resp_placeholder = st.empty()
-        # Customizing the AI's persona based on user selection
+        
         SYSTEM_PROMPT = (
             f"You are an Elite Academic Mentor. Current Focus: {feature}. "
             f"Tone: Encouraging and Academic. Mode: {'Detailed Research' if deep_dive else 'Concise Insight'}."
@@ -224,7 +222,7 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
                 img = PIL.Image.open(up_img)
                 input_data.append(img)
             
-            # 2026-Compliant Gemini Call
+        
             response = client.models.generate_content(
                 model=MODEL_ID,
                 contents=input_data,
@@ -234,7 +232,7 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             final_answer = response.text
             resp_placeholder.markdown(final_answer)
             
-            # Persistence: Update local state and Firebase
+            
             st.session_state.messages.append({"role": "assistant", "content": final_answer})
             chat_ref.set(st.session_state.messages)
             st.rerun()

@@ -4,7 +4,7 @@ from firebase_admin import credentials, auth, db
 import tempfile
 import os
 import json
-# --- 1. PAGE CONFIGURATION & STYLING ---
+
 st.set_page_config(page_title="AI Workspace Login", page_icon="🔑", layout="centered")
 
 st.markdown("""

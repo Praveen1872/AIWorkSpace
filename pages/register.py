@@ -1,10 +1,6 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, auth, db
-import tempfile
-import os
-import json
-# --- 1. PAGE CONFIGURATION & STYLING ---
 st.set_page_config(page_title="AI Workspace Register", page_icon="🛡️", layout="centered")
 
 st.markdown("""
@@ -33,7 +29,7 @@ def initialize_firebase():
         try:
             creds_dict = dict(st.secrets["firebase_credentials"])
 
-            # 🔒 Clean private key strictly
+            
             private_key = creds_dict["private_key"]
             private_key = private_key.strip()
             private_key = private_key.replace("\r\n", "\n").replace("\r", "\n")
@@ -53,7 +49,7 @@ def initialize_firebase():
             st.error(f"Firebase Initialization Failed: {e}")
 
 initialize_firebase()
-# --- 3. REGISTRATION UI ---
+
 st.markdown("<h1 class='title-text'>🛡️ Join the Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle-text'>Create your secure account to start your AI-powered research.</p>", unsafe_allow_html=True)
 
@@ -78,7 +74,7 @@ if st.button("Sign Up"):
     else:
         st.warning("Please fill in all fields.")
 
-# --- 4. FOOTER ---
+
 st.markdown("<hr style='border-top: 1px solid #E0DEDD; margin-top: 40px;'>", unsafe_allow_html=True)
 st.markdown(
     """

@@ -37,7 +37,7 @@ with h_cols[6]:
 
 st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", unsafe_allow_html=True)
 
-# --- 4. CUSTOM STYLING (Restored) ---
+
 st.markdown("""
 <style>
     .notebook-paper {
@@ -61,7 +61,7 @@ st.write("Capture your personal thoughts, draft summaries, or plan your next aca
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    # Summary Import Section
+    
     if latest_summary:
         with st.expander("✨ Latest Summary Detected"):
             st.info("Click the button below to add the latest summary into your notebook.")
