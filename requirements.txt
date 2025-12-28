@@ -1,7 +1,9 @@
 streamlit
 firebase-admin
+google-generativeai
 google-genai
+PyPDF2
+python-docx
 python-pptx
 fpdf
 pillow
-python-docx
