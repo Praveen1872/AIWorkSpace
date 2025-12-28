@@ -68,8 +68,8 @@ st.markdown("""
         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05); /* Subtle depth */
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         justify-content: flex-end; /* aligns buttons to the right */
-        gap: 20px;
-        margin-right: 20px;
+        gap: 10px;
+        margin-right: 10px;
         margin-top: -50px; /* adjust vertical alignment if needed */
     }
 
