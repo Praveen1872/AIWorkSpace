@@ -69,14 +69,15 @@ with col1:
             )
 
     st.markdown('<div class="notebook-paper">', unsafe_allow_html=True)
-    note_title = st.text_input("Note Title", placeholder="e.g., Deep Learning Chapter 1 Reflections")
-    st.text_area(
-        "Your Academic Notes", 
-        height=450, 
-        placeholder="Start typing your thoughts here...",
-        key="note_editor"
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+note_title = st.text_input("Note Title", placeholder="e.g., Deep Learning Chapter 1 Reflections")
+st.text_area(
+    "Your Academic Notes", 
+    height=450, 
+    placeholder="Start typing your thoughts here...",
+    key="note_editor"
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
 
 with col2:
     st.info("💡 **Mentor Tip:** Use this space to synthesize what you've learned. Writing it in your own words improves retention!")
