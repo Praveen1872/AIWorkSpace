@@ -86,9 +86,8 @@ with h_cols[6]:
         st.switch_page("AIMentor.py")
 
 st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", unsafe_allow_html=True)
-API_KEY = st.secrets["GEMINI_API_KEY"]
-# --- 3. ENGINES ---
-client = genai.Client(API_KEY)
+
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 def extract_text_from_any(uploaded_file):
     fname = uploaded_file.name.lower()
