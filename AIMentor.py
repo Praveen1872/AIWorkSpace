@@ -13,37 +13,44 @@ import json
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
 MODEL_ID = "gemini-2.0-flash" 
+import base64
 
 def initialize_firebase():
-    """Initializes Firebase using a temporary file buffer for the Service Account."""
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
-                # 1. Load secrets into a dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 2. Fix the private key format (handling literal \n)
-                # This is essential for keys copied from JSON files
+                # 1. Get the raw body only
                 raw_key = creds_dict["private_key"]
-                creds_dict["private_key"] = raw_key.replace("\\n", "\n").strip().strip('"')
+                # Remove headers, footers, and all whitespace/newlines
+                clean_body = (
+                    raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replace("\\n", "")
+                    .replace("\n", "")
+                    .replace("\r", "")
+                    .replace(" ", "")
+                    .strip()
+                )
                 
-                # 3. Write to a temporary JSON file
-                # This mimics the local .json file Firebase expects natively
-                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as tp:
-                    json.dump(creds_dict, tp)
-                    temp_path = tp.name
-                
+                # 2. Convert the Base64 string directly to Binary
+                # This bypasses the "PEM" text parser that is causing the byte error
                 try:
-                    # 4. Initialize via the temp file path
-                    cred = credentials.Certificate(temp_path)
-                    firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
-                    print("🚀 Firebase Initialized Successfully!")
-                finally:
-                    # 5. Clean up the file immediately after initialization
-                    if os.path.exists(temp_path):
-                        os.unlink(temp_path)
-            else:
-                st.error("Firebase credentials missing in Secrets dashboard.")
+                    key_bytes = base64.b64decode(clean_body)
+                except Exception as e:
+                    st.error(f"Base64 Decoding Failed: {e}")
+                    return
+
+                # 3. Use the credentials from the dict but use the cleaned key
+                # We re-wrap it perfectly one last time
+                lines = [clean_body[i:i+64] for i in range(0, len(clean_body), 64)]
+                creds_dict["private_key"] = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
+
+                # 4. Initialize
+                cred = credentials.Certificate(creds_dict)
+                firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
+                print("🚀 Firebase Success!")
         except Exception as e:
             st.error(f"Handshake Failed: {e}")
 
