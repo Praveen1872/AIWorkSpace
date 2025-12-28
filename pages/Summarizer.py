@@ -65,7 +65,7 @@ if not is_logged_in:
     st.switch_page("pages/login.py")
 
 
-h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 2.0, 1], vertical_alignment="center")
+h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 2.2, 1], vertical_alignment="center")
 with h_cols[0]: 
     st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
 
