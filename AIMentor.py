@@ -155,8 +155,8 @@ if not is_logged_in:
     with main_col1:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown("""
-            <h1 style='font-size: 3.5rem; line-height: 1.1; font-weight: 800;'>Unlock Your<br>
-            <span style='color: #FF6042;'>Academic Potential</span></h1>
+             <h1 style='font-size: 3rem; margin-bottom: 0;'>🚀 Welcome to</h1>
+            <h1 style='font-size: 4rem; color: #FF6042; margin-top: -20px;'>AI Workspace</h1>
             <p style='font-size: 1.25rem; color: #555; margin-top: 20px;'> Stop wasting hours on tasks AI can handle.  
         Your personal academic mentor is ready to help you.</p>
         """, unsafe_allow_html=True)
