@@ -43,28 +43,36 @@ st.markdown(
     "<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>",
     unsafe_allow_html=True
 )
-
-# --- STYLING ---
 st.markdown("""
 <style>
-div[data-baseweb="input"],
-div[data-baseweb="textarea"] {
-    background: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
+/* Hide default Streamlit button */
+div.stButton > button {
+    background-color: #ff6242;
+    color: white;
+    border-radius: 18px;
+    height: 70px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
 }
 
-input, textarea {
-    border: none !important;
-    box-shadow: none !important;
+div.stButton > button:hover {
+    background-color: #ff4a2a;
+    color: white;
 }
 
-input {
-    border-bottom: 1px solid #ddd !important;
-    border-radius: 0 !important;
+div.stButton > button:focus {
+    outline: none;
+    box-shadow: none;
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- MAIN CONTENT ---
 st.title("📓 Research Notebook")
