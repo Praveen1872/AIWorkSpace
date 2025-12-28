@@ -65,7 +65,7 @@ if not is_logged_in:
     st.switch_page("pages/login.py")
 
 
-h_cols = st.columns([2, 0.9, 0.9, 0.9, 10, 2.2, 1], vertical_alignment="center")
+h_cols = st.columns([2, 0.9, 0.9, 0.9, 0.9, 2.2, 1], vertical_alignment="center")
 with h_cols[0]: 
     st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
 
@@ -78,7 +78,7 @@ with h_cols[3]:
     if st.button("Notes 📓", use_container_width=True): st.switch_page("pages/note.py")
 with h_cols[4]: 
     
-    if st.button("Summarizer 📝", use_container_width=True, type="primary"): st.switch_page("pages/Summarizer.py")
+    if st.button("Summarizer 📝", use_container_width=True): st.switch_page("pages/Summarizer.py")
 
 with h_cols[6]:
     if st.button("Logout 🚪", use_container_width=True):
