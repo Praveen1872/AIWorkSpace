@@ -12,37 +12,48 @@ import json
 # --- 1. FIREBASE & API SETUP ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-# Updated to stable 2.0 Flash for 2026 readiness
 MODEL_ID = "gemini-2.0-flash" 
 
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
-                # 1. Load the secrets into a dictionary
+                # 1. Start with a fresh copy of the secrets
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 2. Clean the private key
-                # We handle literal \n strings that often appear in copy-pastes
+                # 2. Precise Key Cleaning
+                # Instead of aggressive stripping, we only fix the literal \n 
+                # and ensure the headers exist.
                 raw_key = creds_dict["private_key"]
-                cleaned_key = raw_key.replace("\\n", "\n").strip().strip('"')
-                creds_dict["private_key"] = cleaned_key
                 
-                # 3. Create a temporary JSON file to bypass string-parsing errors
-                # This is the "Nuclear Option" for PEM errors
+                # Repair literal \n if they exist
+                fixed_key = raw_key.replace("\\n", "\n")
+                
+                # Strip any outer accidental quotes or trailing spaces
+                fixed_key = fixed_key.strip().strip('"').strip("'")
+                
+                # Ensure the PEM block is complete
+                if not fixed_key.startswith("-----BEGIN PRIVATE KEY-----"):
+                    fixed_key = f"-----BEGIN PRIVATE KEY-----\n{fixed_key}"
+                if not fixed_key.endswith("-----END PRIVATE KEY-----"):
+                    fixed_key = f"{fixed_key}\n-----END PRIVATE KEY-----"
+                
+                creds_dict["private_key"] = fixed_key
+
+                # 3. Use a context manager for the temporary file
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as tp:
                     json.dump(creds_dict, tp)
                     temp_path = tp.name
                 
-                # 4. Initialize using the path to our temp file
-                cred = credentials.Certificate(temp_path)
-                firebase_admin.initialize_app(cred, {
-                    'databaseURL': DB_URL
-                })
-                
-                # 5. Clean up the temp file after use
-                os.unlink(temp_path)
-                print("🚀 Firebase Success via File Buffer!")
+                try:
+                    # 4. Initialize
+                    cred = credentials.Certificate(temp_path)
+                    firebase_admin.initialize_app(cred, {'databaseURL': DB_URL})
+                    print("🚀 Firebase Success via File Buffer!")
+                finally:
+                    # 5. Guaranteed cleanup
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
             else:
                 st.error("Firebase credentials missing in Secrets.")
         except Exception as e:
