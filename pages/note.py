@@ -37,13 +37,14 @@ st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", un
 # --- STYLING ---
 st.markdown("""
 <style>
-    .notebook-paper {
-        background-color: #fffdf5;
-        border-left: 5px solid #facc15;
-        padding: 30px;
-        border-radius: 10px;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
-    }
+   .notebook-paper {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
 </style>
 """, unsafe_allow_html=True)
 
