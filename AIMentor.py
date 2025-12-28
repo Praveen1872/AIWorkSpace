@@ -15,10 +15,12 @@ def initialize_firebase():
         try:
             creds_dict = dict(st.secrets["firebase_credentials"])
 
-            # ✅ Only fix if escaped newlines actually exist
-            pk = creds_dict.get("private_key", "")
-            if "\\n" in pk:
-                creds_dict["private_key"] = pk.replace("\\n", "\n")
+            # 🔒 Clean private key strictly
+            private_key = creds_dict["private_key"]
+            private_key = private_key.strip()
+            private_key = private_key.replace("\r\n", "\n").replace("\r", "\n")
+
+            creds_dict["private_key"] = private_key
 
             cred = credentials.Certificate(creds_dict)
 
@@ -32,9 +34,10 @@ def initialize_firebase():
         except Exception as e:
             st.error(f"Firebase Initialization Failed: {e}")
 
+
 client = genai.Client(api_key=API_KEY)
 # Initialize the Gemini Client
-MODEL_ID = "gemini-1.5-flash"
+MODEL_ID = "gemini-2.5-flash-lite"
 # --- 2. PAGE CONFIG & STYLING ---
 st.set_page_config(page_title="AI Professional Workspace", layout="wide", initial_sidebar_state="collapsed")
 
@@ -154,7 +157,7 @@ if not is_logged_in:
             Sign up to save your learning progress across sessions.</p>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Get Started for Free ✨", key="main_unlock"):
+        if st.button("Get Started ", key="main_unlock"):
             st.switch_page("pages/register.py")
     with main_col2:
         # --- UPDATED FOR 2026 COMPLIANCE ---

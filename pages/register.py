@@ -28,16 +28,17 @@ st.markdown("""
     .footer-link { color: #1A1A1A; font-weight: 700; text-decoration: none !important; }
 </style>
 """, unsafe_allow_html=True)
-
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             creds_dict = dict(st.secrets["firebase_credentials"])
 
-            # ✅ Only fix if escaped newlines actually exist
-            pk = creds_dict.get("private_key", "")
-            if "\\n" in pk:
-                creds_dict["private_key"] = pk.replace("\\n", "\n")
+            # 🔒 Clean private key strictly
+            private_key = creds_dict["private_key"]
+            private_key = private_key.strip()
+            private_key = private_key.replace("\r\n", "\n").replace("\r", "\n")
+
+            creds_dict["private_key"] = private_key
 
             cred = credentials.Certificate(creds_dict)
 
