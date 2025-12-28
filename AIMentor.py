@@ -169,8 +169,10 @@ if not is_logged_in:
         if st.button("Get Started for Free ✨", key="main_unlock"):
             st.switch_page("pages/register.py")
     with main_col2:
-        st.image("https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", width=None)
-    st.stop()
+        st.image(
+    "https://img.freepik.com/free-vector/ai-technology-brain-background-digital-transformation-concept_53876-117772.jpg", 
+    use_container_width=True) 
+        st.stop()
 
 # --- 6. CHAT INTERFACE (USER VIEW) ---
 user_uid = st.session_state.get('user_uid', 'guest_user')
