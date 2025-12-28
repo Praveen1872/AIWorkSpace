@@ -21,7 +21,7 @@ with h_cols[2]:
 with h_cols[3]: 
     if st.button("Notes 📓", use_container_width=True): st.switch_page("pages/note.py")
 with h_cols[4]: 
-    if st.button("Summarizer 📝", use_container_width=True, type="primary"): st.switch_page("pages/Summarizer.py")
+    if st.button("Summarizer 📝", use_container_width=True): st.switch_page("pages/Summarizer.py")
 with h_cols[6]:
     if st.button("Logout 🚪", use_container_width=True):
         st.session_state.logged_in = False
