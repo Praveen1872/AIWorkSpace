@@ -1,7 +1,9 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, auth, db
-
+import tempfile
+import os
+import json
 # --- 1. PAGE CONFIGURATION & STYLING ---
 st.set_page_config(page_title="AI Workspace Register", page_icon="🛡️", layout="centered")
 
@@ -29,41 +31,43 @@ st.markdown("""
 
 # --- 2. FIREBASE INITIALIZATION ---
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+
+
+# Updated to stable 2.0 Flash for 2026 readiness
+MODEL_ID = "gemini-2.0-flash" 
+
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
+                # 1. Load the secrets into a dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 1. Isolate the raw key data
+                # 2. Clean the private key
+                # We handle literal \n strings that often appear in copy-pastes
                 raw_key = creds_dict["private_key"]
+                cleaned_key = raw_key.replace("\\n", "\n").strip().strip('"')
+                creds_dict["private_key"] = cleaned_key
                 
-                # 2. Remove headers and footers to isolate the body
-                inner_key = raw_key.replace("-----BEGIN PRIVATE KEY-----", "")
-                inner_key = inner_key.replace("-----END PRIVATE KEY-----", "")
-                inner_key = inner_key.replace("\\n", "")
+                # 3. Create a temporary JSON file to bypass string-parsing errors
+                # This is the "Nuclear Option" for PEM errors
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as tp:
+                    json.dump(creds_dict, tp)
+                    temp_path = tp.name
                 
-                # 3. THE "PURGE" STEP: Remove EVERY character that is not A-Z, a-z, 0-9, +, /, or =
-                # This ensures \r, \t, or hidden spaces are completely gone
-                clean_body = re.sub(r'[^A-Za-z0-9+/=]', '', inner_key)
-                
-                # 4. RE-WRAP into the 64-character standard
-                # This places the '=' padding exactly where the library expects it
-                lines = [clean_body[i:i+64] for i in range(0, len(clean_body), 64)]
-                formatted_key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
-                
-                creds_dict["private_key"] = formatted_key
-                
-                # 5. Initialize
-                cred = credentials.Certificate(creds_dict)
+                # 4. Initialize using the path to our temp file
+                cred = credentials.Certificate(temp_path)
                 firebase_admin.initialize_app(cred, {
-                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+                    'databaseURL': DB_URL
                 })
-                print("🚀 Firebase Connected!")
+                
+                # 5. Clean up the temp file after use
+                os.unlink(temp_path)
+                print("🚀 Firebase Success via File Buffer!")
             else:
-                st.error("Secrets not found!")
+                st.error("Firebase credentials missing in Secrets.")
         except Exception as e:
-            st.error(f"Byte Repair Failed: {e}")
+            st.error(f"Handshake Failed: {e}")
 
 initialize_firebase()
 # --- 3. REGISTRATION UI ---

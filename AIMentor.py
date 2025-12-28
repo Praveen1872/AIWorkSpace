@@ -7,41 +7,45 @@ from fpdf import FPDF
 import PIL.Image
 import io
 import os
-
+import tempfile
 # --- 1. FIREBASE & API SETUP ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 DB_URL = 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
-MODEL_ID = "gemini-2.0-flash-exp" 
+# Updated to stable 2.0 Flash for 2026 readiness
+MODEL_ID = "gemini-2.0-flash" 
+
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             if "firebase_credentials" in st.secrets:
+                # 1. Load the secrets into a dictionary
                 creds_dict = dict(st.secrets["firebase_credentials"])
                 
-                # 1. Clean all formatting (literal \n, spaces, etc.)
+                # 2. Clean the private key
+                # We handle literal \n strings that often appear in copy-pastes
                 raw_key = creds_dict["private_key"]
-                clean_body = (
-                    raw_key.replace("\\n", "")
-                    .replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replace(" ", "")
-                    .replace("\n", "")
-                    .strip()
-                )
+                cleaned_key = raw_key.replace("\\n", "\n").strip().strip('"')
+                creds_dict["private_key"] = cleaned_key
                 
-                # 2. Re-wrap into 64-character lines (Standard PEM format)
-                wrapped_body = "\n".join([clean_body[i:i+64] for i in range(0, len(clean_body), 64)])
+                # 3. Create a temporary JSON file to bypass string-parsing errors
+                # This is the "Nuclear Option" for PEM errors
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as tp:
+                    json.dump(creds_dict, tp)
+                    temp_path = tp.name
                 
-                # 3. Final Reconstruction
-                creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{wrapped_body}\n-----END PRIVATE KEY-----\n"
-                
-                cred = credentials.Certificate(creds_dict)
+                # 4. Initialize using the path to our temp file
+                cred = credentials.Certificate(temp_path)
                 firebase_admin.initialize_app(cred, {
-                    'databaseURL': 'https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/'
+                    'databaseURL': DB_URL
                 })
-                print("🚀 Firebase Success!")
+                
+                # 5. Clean up the temp file after use
+                os.unlink(temp_path)
+                print("🚀 Firebase Success via File Buffer!")
+            else:
+                st.error("Firebase credentials missing in Secrets.")
         except Exception as e:
-            st.error(f"Byte Repair Failed: {e}")
+            st.error(f"Handshake Failed: {e}")
 
 initialize_firebase()
 client = genai.Client(api_key=API_KEY)
