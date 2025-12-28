@@ -126,7 +126,7 @@ is_logged_in = st.session_state.logged_in
 
 cols = st.columns([2, 0.7, 0.7, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
 with cols[0]:
-    st.markdown("<h3 style='margin:0; font-weight:800;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin:0; font-weight:800;'>🚀 AI WrokSpace</h3>", unsafe_allow_html=True)
 
 if is_logged_in:
     with cols[1]:
