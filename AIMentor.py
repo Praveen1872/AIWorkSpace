@@ -163,8 +163,9 @@ if not is_logged_in:
         st.info("💡 Please Sign In or Sign Up to access your persistent AI Mentor.")
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Get Started ", key="main_unlock"):
-            st.caption("Powered by Google Gemini AI")
+            
             st.switch_page("pages/register.py")
+        st.caption("Powered by Google Gemini AI")
     with main_col2:
         
         st.image("assets/banner2_desktop.png", use_container_width=True)
