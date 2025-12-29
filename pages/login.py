@@ -36,17 +36,38 @@ st.markdown(""" <style>
             </style> """, unsafe_allow_html=True)
 
 
+DB_URL = "https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/"
+
 def initialize_firebase():
+    """Initialize Firebase using Streamlit Secrets"""
     if not firebase_admin._apps:
-        creds_dict = dict(st.secrets["firebase_credentials"])
+        try:
+            # Load credentials from Streamlit Secrets
+            creds_dict = dict(st.secrets["firebase_credentials"])
 
-        private_key = creds_dict["private_key"]
-        private_key = private_key.strip().replace("\r\n", "\n").replace("\r", "\n")
-        creds_dict["private_key"] = private_key
+            # 🔒 Strictly clean the private key
+            private_key = creds_dict["private_key"]
+            private_key = private_key.strip()
+            private_key = private_key.replace("\\n", "\n")
+            private_key = private_key.replace("\r\n", "\n").replace("\r", "\n")
 
-        cred = credentials.Certificate(creds_dict)
-        firebase_admin.initialize_app(cred)
+            creds_dict["private_key"] = private_key
 
+            # Create credential
+            cred = credentials.Certificate(creds_dict)
+
+            # Initialize Firebase app
+            firebase_admin.initialize_app(
+                cred,
+                {
+                    "databaseURL": DB_URL
+                }
+            )
+
+        except Exception as e:
+            st.error(f"Firebase Initialization Failed: {e}")
+
+# Initialize once
 initialize_firebase()
 
 
