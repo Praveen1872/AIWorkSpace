@@ -3,36 +3,42 @@ import firebase_admin
 from firebase_admin import credentials, auth
 import requests
 
-# ---------------- PAGE CONFIG ----------------
+
 st.set_page_config(
     page_title="AI Workspace Login",
     page_icon="🔑",
     layout="centered"
 )
 
-# ---------------- STYLES ----------------
-st.markdown("""
-<style>
-.stApp { background-color: #FAF8F7; }
-[data-testid="stVerticalBlock"] > div:nth-child(2) {
-    background-color: white;
-    padding: 40px;
-    border-radius: 25px;
-    border: 1px solid #E0DEDD;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.03);
-}
-div.stButton > button {
-    width: 100%;
-    border-radius: 50px;
-    height: 3.5em;
-    background-color: #1A1A1A;
-    color: white;
-    font-weight: 600;
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style="
+        text-align: center;
+        margin-top: 30px;
+        font-size: 0.95rem;
+        color: #555;
+    ">
+        New user?
+        <a href="/register" style="
+            margin-left: 6px;
+            color: #1A1A1A;
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        "
+        onmouseover="this.style.borderBottom='2px solid #1A1A1A'"
+        onmouseout="this.style.borderBottom='2px solid transparent'"
+        >
+            Create account →
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-# ---------------- FIREBASE INIT ----------------
+
+
 def initialize_firebase():
     if not firebase_admin._apps:
         creds_dict = dict(st.secrets["firebase_credentials"])
@@ -46,7 +52,7 @@ def initialize_firebase():
 
 initialize_firebase()
 
-# ---------------- FIREBASE LOGIN (PASSWORD CHECK) ----------------
+
 def firebase_sign_in(email, password):
     api_key = st.secrets["FIREBASE_WEB_API_KEY"]
     url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={api_key}"
@@ -60,7 +66,7 @@ def firebase_sign_in(email, password):
     response = requests.post(url, json=payload)
     return response
 
-# ---------------- UI ----------------
+
 st.markdown("<h1 style='text-align:center;'>🚀 AI Mentor Workspace</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center;color:#666;'>Sign in to continue</p>", unsafe_allow_html=True)
 
@@ -69,7 +75,7 @@ password = st.text_input("🔒 Password", type="password")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ---------------- LOGIN LOGIC ----------------
+
 if st.button("Sign In"):
     if email and password:
         try:
@@ -103,7 +109,7 @@ if st.button("Sign In"):
     else:
         st.warning("Please enter email and password.")
 
-# ---------------- FOOTER ----------------
+
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown(
     "<div style='text-align:center;'>New user? <a href='/register'>Create account</a></div>",
