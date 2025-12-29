@@ -37,7 +37,7 @@ client = genai.Client(api_key=API_KEY)
 
 MODEL_ID = "gemini-2.5-flash-lite"
 
-st.set_page_config(page_title="AI Professional Workspace", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="AI Professional Workspace", layout="wide")
 st.markdown("""
 <style>
     /* 1. Global App & Font Polish */
