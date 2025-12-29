@@ -68,8 +68,7 @@ def firebase_sign_in(email, password):
 
 
 st.markdown("<h1 style='text-align:center;'>🚀 AI Mentor Workspace</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:#666;'>Sign in to continue</p>", unsafe_allow_html=True)
-
+st.markdown("<p class='subtitle-text'>Welcome back! Please sign in to access your personal AI researcher.</p>", unsafe_allow_html=True)
 email = st.text_input("📧 Email Address")
 password = st.text_input("🔒 Password", type="password")
 
@@ -111,7 +110,4 @@ if st.button("Sign In"):
 
 
 st.markdown("<hr>", unsafe_allow_html=True)
-st.markdown(
-    "<div style='text-align:center;'>New user? <a href='/register'>Create account</a></div>",
-    unsafe_allow_html=True
-)
+st.markdown( """ <div style="text-align: center; color: #666;"> New to the platform? <a href="/register" target="_self" class="footer-link"> Create an Account 🚀 </a> </div> """, unsafe_allow_html=True )
