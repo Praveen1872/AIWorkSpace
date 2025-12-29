@@ -10,7 +10,30 @@ st.set_page_config(
     layout="centered"
 )
 
-st.markdown(""" <style> .stApp { background-color: #FAF8F7; } /* Card Container */ [data-testid="stVerticalBlock"] > div:nth-child(2) { background-color: white; padding: 40px; border-radius: 25px; border: 1px solid #E0DEDD; box-shadow: 0px 4px 20px rgba(0,0,0,0.03); } .title-text { text-align: center; font-weight: 800; color: #1A1A1A; font-size: 2.2rem; } .subtitle-text { text-align: center; color: #666; margin-bottom: 30px; } /* Action Button styling */ div.stButton > button { display: block; margin: 0 auto; width: 100%; border-radius: 50px; height: 3.5em; background-color: #1A1A1A; color: white; border: none; font-weight: 600; transition: all 0.3s ease; } div.stButton > button:hover { background-color: #333333; transform: scale(1.02); color: white !important; } .footer-link { color: #1A1A1A; font-weight: 700; text-decoration: none !important; } </style> """, unsafe_allow_html=True)
+st.markdown(""" <style> 
+            .stApp { background-color: #FAF8F7; }
+             /* Card Container */ [data-testid="stVerticalBlock"] > div:nth-child(2)
+             { background-color: white;
+             padding: 40px;
+             border-radius: 25px; 
+            border: 1px solid #E0DEDD;
+             box-shadow: 0px 4px 20px rgba(0,0,0,0.03); }
+             .title-text { text-align: center; 
+            font-weight: 800; color: #1A1A1A;
+             font-size: 2.2rem; } 
+            .subtitle-text
+             { text-align: center; color: #666; margin-bottom: 30px; }
+             /* Action Button styling */ 
+            div.stButton > button {
+             display: block; margin: 0 auto; width: 100%;
+             border-radius: 50px; height: 3.5em; background-color: #1A1A1A; 
+            color: white; border: none; font-weight: 600; transition: all 0.3s ease; }
+             div.stButton > button:hover { background-color: #333333; transform: scale(1.02); 
+            color: white !important; } 
+            .footer-link { color: #1A1A1A; 
+            font-weight: 700;
+             text-decoration: none !important; } 
+            </style> """, unsafe_allow_html=True)
 
 
 def initialize_firebase():
@@ -68,11 +91,11 @@ if st.button("Sign In"):
             else:
                 error = response.json()["error"]["message"]
 
-                if error == "INVALID_PASSWORD":
+                if error == "INVALID PASSWORD":
                     st.error("Incorrect password.")
-                elif error == "EMAIL_NOT_FOUND":
+                elif error == "EMAIL NOT FOUND":
                     st.error("Account not found. Please register.")
-                elif error == "USER_DISABLED":
+                elif error == "USER DISABLED":
                     st.error("User account disabled.")
                 else:
                     st.error(error)
