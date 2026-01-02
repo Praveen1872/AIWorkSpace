@@ -132,7 +132,7 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
     
     system_instr = (
     "You are an Academic Slide Architect. Create as many slides as necessary to cover the topic "
-    "comprehensively. IMPORTANT: Each slide MUST have a MAXIMUM of 7 bullet points. "
+    "comprehensively. IMPORTANT: Each slide MUST have a MAXIMUM of 4 bullet points. "
     "If the content requires more than 7 points, increment to a new slide with a specific sub-title. "
     "Return ONLY a valid JSON object. Do NOT use markdown bolding (**). "
     "Format: {'slides': [{'title': '...', 'points': ['point 1', 'point 2']}], 'mentor_advice': '...'}"
