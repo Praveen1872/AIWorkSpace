@@ -13,7 +13,7 @@ st.markdown("""
     }
 
     .slide-stage {
-        width: 500px;
+        width: 650px;
         height: 720px;
         background-color: #FFFFFF;
         margin: 20px auto;
