@@ -13,8 +13,8 @@ st.markdown("""
     }
 
     .slide-stage {
-        width: 650px;
-        height: 720px;
+        width: 700px;
+        height: 500px;
         background-color: #FFFFFF;
         margin: 20px auto;
         padding: 50px;
@@ -26,7 +26,15 @@ st.markdown("""
         overflow: hidden;
         position: relative;
     }
-
+.slide-stage {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 40px;
+       
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
     .slide-title {
         font-size: 42px;
         font-weight: 800;
@@ -103,15 +111,7 @@ st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", un
 
 st.markdown("""
     <style>
-    .slide-stage {
-        background-color: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 40px;
-        min-height: 450px;
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
+    
     .slide-title { color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 25px; border-bottom: 3px solid #3b82f6; width: 100%; padding-bottom: 10px; }
     .col-container { display: flex; gap: 30px; }
     .content-col { flex: 1; }
