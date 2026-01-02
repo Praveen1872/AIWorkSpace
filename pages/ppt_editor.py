@@ -131,10 +131,12 @@ client = genai.Client(api_key=API_KEY)
 def call_ai_architect(prompt, current_data=None, active_idx=None):
     
     system_instr = (
-        "Create academic slides. IMPORTANT: Every slide MUST have two columns of content. "
-        "Return ONLY a valid JSON object. Do NOT use markdown bolding (**). "
-        "Format: {'slides': [{'title': '...', 'left_col': ['point 1'], 'right_col': ['point 1']}], 'mentor_advice': '...'}"
-    )
+    "You are an Academic Slide Architect. Create as many slides as necessary to cover the topic "
+    "comprehensively. IMPORTANT: Each slide MUST have a MAXIMUM of 7 bullet points. "
+    "If the content requires more than 7 points, increment to a new slide with a specific sub-title. "
+    "Return ONLY a valid JSON object. Do NOT use markdown bolding (**). "
+    "Format: {'slides': [{'title': '...', 'points': ['point 1', 'point 2']}], 'mentor_advice': '...'}"
+)
     if current_data:
         focus = f"Slide {active_idx+1}" if active_idx is not None else "the whole deck"
         system_instr = f"Context: {json.dumps(current_data)}. Update {focus} based on: {prompt}. " + system_instr
@@ -164,22 +166,17 @@ with col_stage:
             
         active_slide = data[st.session_state.current_slide_idx]
         title_display = clean_text(active_slide.get('title', 'Untitled Slide'))
-       
-        # 1. Combine all points into one list
-        all_points = active_slide.get("left_col", []) + active_slide.get("right_col", [])
+        active_points = active_slide.get("points", [])[:7] # Strict 7-point limit
+        points_html = "".join([f'<div class="slide-point">• {clean_text(p)}</div>' for p in active_points])
 
-        # 2. Create the HTML for all points in a single stream
-        points_html = "".join([f'<div class="slide-point">• {clean_text(p)}</div>' for p in all_points])
-
-        # 3. Use a simplified single-container Markdown
         st.markdown(f"""
-             <div class="slide-stage">
-             <div class="slide-title">{title_display}</div>
-            <div class="content-single">
-            {points_html if points_html else '<i>Add content to this slide...</i>'}
-            </div>
-            </div>
-        """, unsafe_allow_html=True)
+     <div class="slide-stage">
+        <div class="slide-title">{title_display}</div>
+        <div class="content-single">
+            {points_html if points_html else '<i>No content for this slide.</i>'}
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
         
         st.write("### 🎞️ Slide Navigator")
@@ -202,17 +199,15 @@ with col_stage:
            prs.slide_width = 9144000 
            prs.slide_height = 6858000
            for s in st.session_state.ppt_data:
-               slide_layout = prs.slide_layouts[1] 
-               slide = prs.slides.add_slide(slide_layout)
-               slide.shapes.title.text = clean_text(s.get('title', 'Untitled Slide'))
-        
-        
-               all_points = s.get('left_col', []) + s.get('right_col', [])
-               combined_text = "\n".join([f"• {clean_text(p)}" for p in all_points])
-        
-       
-               if len(slide.placeholders) > 1:
-                   slide.placeholders[1].text = combined_text
+                slide = prs.slides.add_slide(prs.slide_layouts[1]) 
+                slide.shapes.title.text = clean_text(s.get('title', ''))
+    
+                 # Export the single points list (limited to 7)
+                slide_points = s.get('points', [])[:7]
+                combined_text = "\n".join([clean_text(p) for p in slide_points])
+    
+                if len(slide.placeholders) > 1:
+                    slide.placeholders[1].text = combined_text
                    
            buf = io.BytesIO()
            prs.save(buf)
