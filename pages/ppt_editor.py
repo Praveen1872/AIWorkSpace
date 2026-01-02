@@ -198,19 +198,32 @@ with col_stage:
                 st.session_state.ppt_data.pop(st.session_state.current_slide_idx)
                 st.rerun()
         with c2:
-            # PPTX Export Logic for 2 Columns
-            prs = Presentation()
-            for s in st.session_state.ppt_data:
-                
-                slide = prs.slides.add_slide(prs.slide_layouts[3]) 
-                slide.shapes.title.text = clean_text(s.get('title', ''))
-                
-                slide.placeholders[1].text = "\n".join([clean_text(p) for p in s.get('left_col', [])])
-                slide.placeholders[2].text = "\n".join([clean_text(p) for p in s.get('right_col', [])])
-            
-            buf = io.BytesIO()
-            prs.save(buf)
-            st.download_button("📥 Download PPTX", buf.getvalue(), "presentation.pptx", use_container_width=True)
+           prs = Presentation()
+           prs.slide_width = 9144000 
+           prs.slide_height = 6858000
+           for s in st.session_state.ppt_data:
+               slide_layout = prs.slide_layouts[1] 
+               slide = prs.slides.add_slide(slide_layout)
+               slide.shapes.title.text = clean_text(s.get('title', 'Untitled Slide'))
+        
+        
+               all_points = s.get('left_col', []) + s.get('right_col', [])
+               combined_text = "\n".join([f"• {clean_text(p)}" for p in all_points])
+        
+       
+               if len(slide.placeholders) > 1:
+                   slide.placeholders[1].text = combined_text
+                   
+           buf = io.BytesIO()
+           prs.save(buf)
+           st.download_button(
+                label="📥 Download PPTX",
+                data=buf.getvalue(),
+                file_name="presentation.pptx",
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                use_container_width=True
+)
+          
     else:
         st.info("👋 Ask the Assistant to generate a 2-column deck!")
 
@@ -230,7 +243,7 @@ with col_chat:
 
     if user_in := st.chat_input("Ex: 'Create 3 slides on the history of space flight'"):
         st.session_state.chat_history.append({"role": "user", "content": user_in})
-        with st.spinner("Architecting dual columns..."):
+        with st.spinner("Architecting ..."):
             idx = st.session_state.current_slide_idx if (edit_mode and "ppt_data" in st.session_state) else None
             new_slides, advice, model_name = call_ai_architect(user_in, st.session_state.get("ppt_data"), idx)
             if new_slides:
