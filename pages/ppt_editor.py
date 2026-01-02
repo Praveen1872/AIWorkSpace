@@ -148,14 +148,7 @@ with col_stage:
             
         active_slide = data[st.session_state.current_slide_idx]
         title_display = clean_text(active_slide.get('title', 'Untitled Slide'))
-        """
-        # Column Logic
-        l_pts = "".join([f'<div class="slide-point">• {clean_text(p)}</div>' for p in active_slide.get("left_col", [])])
-        r_pts = "".join([f'<div class="slide-point">• {clean_text(p)}</div>' for p in active_slide.get("right_col", [])])
-
-        st.markdown(f"""
-            
-        """, unsafe_allow_html=True)"""
+       
         # 1. Combine all points into one list
         all_points = active_slide.get("left_col", []) + active_slide.get("right_col", [])
 
@@ -165,7 +158,7 @@ with col_stage:
         # 3. Use a simplified single-container Markdown
         st.markdown(f"""
              <div class="slide-stage">
-             
+             <div class="slide-title">{title_display}</div>
             <div class="content-single">
             {points_html if points_html else '<i>Add content to this slide...</i>'}
             </div>
