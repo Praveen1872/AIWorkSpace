@@ -40,6 +40,12 @@ MODEL_ID = "gemini-2.5-flash-lite"
 if "show_history" not in st.session_state:
     st.session_state.show_history = False
 
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if "active_conversation" not in st.session_state:
+    st.session_state.active_conversation = None
+
 
 st.set_page_config(page_title="AI Professional Workspace", layout="wide")
 st.markdown("""
@@ -203,16 +209,11 @@ conversations_ref = (
     .collection("conversations")
 )
 
+
 conversations = conversations_ref.order_by(
     "last_updated", direction=firestore.Query.DESCENDING
 ).stream()
-conversation_ref = conversations_ref.add({
-    "title": prompt[:40],  # first line as title
-    "created_at": firestore.SERVER_TIMESTAMP,
-    "last_updated": firestore.SERVER_TIMESTAMP
-})
 
-st.session_state.active_conversation = conversation_ref[1].id
 
 
 memory_doc = memory_ref.get()
@@ -346,17 +347,32 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
     if up_img:
         st.image(up_img, caption="Image Attachment Ready", width=300)
 
-
 if prompt := st.chat_input(f"Ask your {feature}..."):
 
-    # 1️⃣ Add user message to UI memory
+    # 🔹 Create conversation on first message
+    if st.session_state.active_conversation is None:
+        convo_ref = conversations_ref.add({
+            "title": prompt[:40],
+            "created_at": firestore.SERVER_TIMESTAMP,
+            "last_updated": firestore.SERVER_TIMESTAMP
+        })
+        st.session_state.active_conversation = convo_ref[1].id
+
+    # 🔹 Messages collection for active conversation
+    messages_ref = (
+        conversations_ref
+        .document(st.session_state.active_conversation)
+        .collection("messages")
+    )
+
+    # 🔹 Save user message (UI)
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
     })
 
-    # 2️⃣ Store user message in Firestore
-    chats_col.add({
+    # 🔹 Save user message (Firestore)
+    messages_ref.add({
         "role": "user",
         "content": prompt,
         "timestamp": firestore.SERVER_TIMESTAMP
@@ -368,14 +384,27 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             if up_img:
                 st.image(up_img, width=300)
 
+    # 🔹 Read memory safely
+    memory_doc = memory_ref.get()
+    long_term_memory = (
+        memory_doc.to_dict().get("long_term_summary", "")
+        if memory_doc.exists else ""
+    )
+
     with st.chat_message("assistant"):
         resp_placeholder = st.empty()
 
-        SYSTEM_PROMPT = f"""You are an Elite Academic Mentor AI.
-        User Memory:{long_term_memory}
-        Current Mode: {feature}
-        Response Style: {'Detailed Research' if deep_dive else 'Concise Insight'}
-        Be consistent with the user's past goals and preferences."""
+        SYSTEM_PROMPT = f"""
+You are an Elite Academic Mentor AI.
+
+User Memory:
+{long_term_memory}
+
+Current Mode: {feature}
+Response Style: {'Detailed Research' if deep_dive else 'Concise Insight'}
+
+Be consistent with the user's past goals and preferences.
+"""
 
         try:
             input_data = [prompt]
@@ -394,22 +423,27 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             final_answer = response.text
             resp_placeholder.markdown(final_answer)
 
-            # 3️⃣ Add assistant message to UI memory
+            # 🔹 Save assistant message (UI)
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": final_answer
             })
 
-            # 4️⃣ Store assistant message in Firestore
-            chats_col.add({
+            # 🔹 Save assistant message (Firestore)
+            messages_ref.add({
                 "role": "assistant",
                 "content": final_answer,
                 "timestamp": firestore.SERVER_TIMESTAMP
+            })
+
+            # 🔹 Update conversation timestamp
+            conversations_ref.document(
+                st.session_state.active_conversation
+            ).update({
+                "last_updated": firestore.SERVER_TIMESTAMP
             })
 
             st.rerun()
 
         except Exception as e:
             st.error(f"AI Connection Failed: {e}")
-
-
