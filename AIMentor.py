@@ -37,6 +37,7 @@ client = genai.Client(api_key=API_KEY)
 
 MODEL_ID = "gemini-2.5-flash-lite"
 
+
 st.set_page_config(page_title="AI Professional Workspace", layout="wide")
 st.markdown("""
 <style>
@@ -182,6 +183,64 @@ chats_col = (
     .document(user_uid)
     .collection("chats")
 )
+memory_ref = (
+    firestore_db
+    .collection("users")
+    .document(user_uid)
+    .collection("memory")
+    .document("summary")
+)
+
+memory_doc = memory_ref.get()
+
+if not memory_doc.exists:
+    memory_ref.set({
+        "long_term_summary": "",
+        "updated_at": firestore.SERVER_TIMESTAMP
+    })
+def update_long_term_memory(chats_col, memory_ref):
+    docs = chats_col.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(10).stream()
+    
+    recent_chats = []
+    for doc in docs:
+        d = doc.to_dict()
+        recent_chats.append(f"{d['role']}: {d['content']}")
+
+    recent_chats.reverse()
+    chat_text = "\n".join(recent_chats)
+
+    memory_doc = memory_ref.get()
+    old_memory = memory_doc.to_dict().get("long_term_summary", "")
+
+    prompt = f"""
+You are an AI memory summarizer.
+
+Existing memory:
+{old_memory}
+
+Recent conversation:
+{chat_text}
+
+Update the memory with:
+- User goals
+- Repeated topics
+- Preferences
+- Important context
+
+Keep it concise (5–7 lines).
+"""
+
+    response = client.models.generate_content(
+        model=MODEL_ID,
+        contents=[prompt]
+    )
+
+    memory_ref.set({
+        "long_term_summary": response.text,
+        "updated_at": firestore.SERVER_TIMESTAMP
+    })
+if len(st.session_state.messages) % 4 == 0:
+    update_long_term_memory(chats_col, memory_ref)
 
 
 if "messages" not in st.session_state:
@@ -250,12 +309,11 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
     with st.chat_message("assistant"):
         resp_placeholder = st.empty()
 
-        SYSTEM_PROMPT = (
-            f"You are an Elite Academic Mentor. Current Focus: {feature}. "
-            f"Tone: Encouraging and Academic. "
-            f"Mode: {'Detailed Research' if deep_dive else 'Concise Insight'}."
-        )
-
+        SYSTEM_PROMPT = f"""You are an Elite Academic Mentor AI.
+        User Memory:{long_term_memory}
+        Current Mode: {feature}
+        Response Style: {'Detailed Research' if deep_dive else 'Concise Insight'}
+        Be consistent with the user's past goals and preferences."""
         try:
             input_data = [prompt]
             if up_img:
