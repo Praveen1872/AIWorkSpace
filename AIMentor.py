@@ -1,6 +1,6 @@
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, auth, db
+from firebase_admin import credentials, auth, firestore
 from google import genai
 from google.genai import types
 from fpdf import FPDF
@@ -22,12 +22,8 @@ def initialize_firebase():
 
             cred = credentials.Certificate(creds_dict)
 
-            firebase_admin.initialize_app(
-                cred,
-                {
-                    "databaseURL": "https://workspace-1f516-default-rtdb.asia-southeast1.firebasedatabase.app/"
-                }
-            )
+            firebase_admin.initialize_app(cred)
+
 
         except Exception as e:
             st.error(f"Firebase Initialization Failed: {e}")
@@ -175,12 +171,22 @@ if not is_logged_in:
 
 
 user_uid = st.session_state.get('user_uid', 'guest_user')
-chat_ref = db.reference(f"users/{user_uid}/chat_history")
+chats_col = (
+    firestore_db
+    .collection("users")
+    .document(user_uid)
+    .collection("chats")
+)
+
 
 
 if "messages" not in st.session_state:
-    saved_history = chat_ref.get()
-    st.session_state.messages = saved_history if saved_history else []
+    messages = []
+    docs = chats_col.order_by("timestamp").stream()
+    for doc in docs:
+        messages.append(doc.to_dict())
+    st.session_state.messages = messages
+
 
 with st.sidebar:
     st.markdown("<h2 style='color: #FF6042;'>🛠️ Workspace</h2>", unsafe_allow_html=True)
@@ -189,8 +195,13 @@ with st.sidebar:
     deep_dive = st.toggle("Detailed Mode (Deep Dive)", value=False)
     if st.button("🗑️ Reset All Progress"):
         st.session_state.messages = []
-        chat_ref.delete()
-        st.rerun()
+        for doc in chats_col.stream():
+            doc.reference.delete()
+
+    st.session_state.messages = []
+    st.rerun()
+
+       
 
 
 chat_display = st.container()
@@ -211,7 +222,11 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
 
 
 if prompt := st.chat_input(f"Ask your {feature}..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    chats_col.add({
+    "role": "user",
+    "content": prompt,
+    "timestamp": firestore.SERVER_TIMESTAMP
+})
     with chat_display:
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -243,8 +258,15 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             
             
             st.session_state.messages.append({"role": "assistant", "content": final_answer})
-            chat_ref.set(st.session_state.messages)
+
+            chats_col.add({
+                  "role": "assistant",
+                     "content": final_answer,
+              "timestamp": firestore.SERVER_TIMESTAMP
+                  })
+
             st.rerun()
+
 
         except Exception as e:
             st.error(f"AI Connection Failed: {e}")
