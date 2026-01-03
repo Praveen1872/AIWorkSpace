@@ -40,10 +40,7 @@ div.stButton > button:hover {
 def initialize_firebase():
     if not firebase_admin._apps:
         creds_dict = dict(st.secrets["firebase_credentials"])
-
-        private_key = creds_dict["private_key"].replace("\\n", "\n")
-        creds_dict["private_key"] = private_key
-
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
         cred = credentials.Certificate(creds_dict)
         firebase_admin.initialize_app(cred)
 
@@ -72,7 +69,7 @@ password = st.text_input("🔒 Password", type="password")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ------------------ LOGIN LOGIC ------------------
+# ------------------ LOGIN LOGIC (FIXED) ------------------
 if st.button("Sign In"):
     if email and password:
         try:
@@ -82,11 +79,24 @@ if st.button("Sign In"):
                 data = response.json()
                 uid = data["localId"]
 
-                # 🔹 Verify user exists in Firestore
-                user_doc = firestore_db.collection("users").document(uid).get()
+                # 🔥 AUTO-HEAL FIRESTORE PROFILE
+                user_ref = firestore_db.collection("users").document(uid)
+                user_doc = user_ref.get()
+
                 if not user_doc.exists:
-                    st.error("User profile not found. Please register again.")
-                    st.stop()
+                    user_ref.set({
+                        "profile": {
+                            "name": data["email"].split("@")[0],
+                            "email": data["email"],
+                            "level": "student",
+                            "created_at": firestore.SERVER_TIMESTAMP
+                        },
+                        "preferences": {
+                            "font": "Poppins",
+                            "tone": "professional",
+                            "theme": "light"
+                        }
+                    })
 
                 # 🔹 Set session
                 st.session_state.logged_in = True
