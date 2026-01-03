@@ -37,6 +37,9 @@ client = genai.Client(api_key=API_KEY)
 
 MODEL_ID = "gemini-2.5-flash-lite"
 
+if "show_history" not in st.session_state:
+    st.session_state.show_history = False
+
 
 st.set_page_config(page_title="AI Professional Workspace", layout="wide")
 st.markdown("""
@@ -193,6 +196,17 @@ memory_ref = (
     .collection("memory")
     .document("summary")
 )
+conversations_ref = (
+    firestore_db
+    .collection("users")
+    .document(user_uid)
+    .collection("conversations")
+)
+
+conversations = conversations_ref.order_by(
+    "last_updated", direction=firestore.Query.DESCENDING
+).stream()
+
 
 memory_doc = memory_ref.get()
 
@@ -263,15 +277,51 @@ with st.sidebar:
     st.markdown("---")
     deep_dive = st.toggle("Detailed Mode (Deep Dive)", value=False)
 
-    if st.button("🗑️ Reset All Progress"):
-        for doc in chats_col.stream():
-            doc.reference.delete()
-        st.session_state.messages = []
-        st.rerun()
+    if st.button("📜 My History"):
+     st.session_state.show_history = True
 
+if st.session_state.show_history:
+    with st.sidebar:
+        st.markdown("## 🕒 Chat History")
 
-       
+        for convo in conversations:
+            convo_data = convo.to_dict()
+            convo_id = convo.id
 
+            with st.container():
+                col1, col2 = st.columns([5, 1])
+
+                with col1:
+                    if st.button(
+                        f"📝 {convo_data['title']}",
+                        key=f"open_{convo_id}"
+                    ):
+                        st.session_state.active_conversation = convo_id
+                        st.session_state.show_history = False
+                        st.rerun()
+
+                with col2:
+                    if st.button("⋮", key=f"menu_{convo_id}"):
+                        st.session_state.delete_target = convo_id
+if "delete_target" not in st.session_state:
+    st.session_state.delete_target = None
+if st.session_state.delete_target:
+    with st.sidebar:
+        st.warning("Delete this chat history?")
+        col1, col2 = st.columns(2)
+
+        if col1.button("Delete"):
+            firestore_db.collection("users") \
+                .document(user_uid) \
+                .collection("conversations") \
+                .document(st.session_state.delete_target) \
+                .delete()
+
+            st.session_state.delete_target = None
+            st.rerun()
+
+        if col2.button("Cancel"):
+            st.session_state.delete_target = None
 
 chat_display = st.container()
 with chat_display:
@@ -354,3 +404,11 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
         except Exception as e:
             st.error(f"AI Connection Failed: {e}")
+            
+conversation_ref = conversations_ref.add({
+    "title": prompt[:40],  # first line as title
+    "created_at": firestore.SERVER_TIMESTAMP,
+    "last_updated": firestore.SERVER_TIMESTAMP
+})
+
+st.session_state.active_conversation = conversation_ref[1].id
