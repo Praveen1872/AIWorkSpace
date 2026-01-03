@@ -404,11 +404,5 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
         except Exception as e:
             st.error(f"AI Connection Failed: {e}")
-            
-conversation_ref = conversations_ref.add({
-    "title": prompt[:40],  # first line as title
-    "created_at": firestore.SERVER_TIMESTAMP,
-    "last_updated": firestore.SERVER_TIMESTAMP
-})
 
-st.session_state.active_conversation = conversation_ref[1].id
+
