@@ -196,11 +196,11 @@ memory_ref = (
 
 memory_doc = memory_ref.get()
 
-if not memory_doc.exists:
-    memory_ref.set({
-        "long_term_summary": "",
-        "updated_at": firestore.SERVER_TIMESTAMP
-    })
+if memory_doc.exists:
+    long_term_memory = memory_doc.to_dict().get("long_term_summary", "")
+else:
+    long_term_memory = ""
+
 def update_long_term_memory(chats_col, memory_ref):
     docs = chats_col.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(10).stream()
     
@@ -319,6 +319,7 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
         Current Mode: {feature}
         Response Style: {'Detailed Research' if deep_dive else 'Concise Insight'}
         Be consistent with the user's past goals and preferences."""
+
         try:
             input_data = [prompt]
             if up_img:
