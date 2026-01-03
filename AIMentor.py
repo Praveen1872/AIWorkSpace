@@ -206,6 +206,13 @@ conversations_ref = (
 conversations = conversations_ref.order_by(
     "last_updated", direction=firestore.Query.DESCENDING
 ).stream()
+conversation_ref = conversations_ref.add({
+    "title": prompt[:40],  # first line as title
+    "created_at": firestore.SERVER_TIMESTAMP,
+    "last_updated": firestore.SERVER_TIMESTAMP
+})
+
+st.session_state.active_conversation = conversation_ref[1].id
 
 
 memory_doc = memory_ref.get()
