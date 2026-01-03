@@ -37,15 +37,6 @@ client = genai.Client(api_key=API_KEY)
 
 MODEL_ID = "gemini-2.5-flash-lite"
 
-if "show_history" not in st.session_state:
-    st.session_state.show_history = False
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "active_conversation" not in st.session_state:
-    st.session_state.active_conversation = None
-
 
 st.set_page_config(page_title="AI Professional Workspace", layout="wide")
 st.markdown("""
@@ -202,19 +193,6 @@ memory_ref = (
     .collection("memory")
     .document("summary")
 )
-conversations_ref = (
-    firestore_db
-    .collection("users")
-    .document(user_uid)
-    .collection("conversations")
-)
-
-
-conversations = conversations_ref.order_by(
-    "last_updated", direction=firestore.Query.DESCENDING
-).stream()
-
-
 
 memory_doc = memory_ref.get()
 
@@ -285,51 +263,15 @@ with st.sidebar:
     st.markdown("---")
     deep_dive = st.toggle("Detailed Mode (Deep Dive)", value=False)
 
-    if st.button("📜 My History"):
-     st.session_state.show_history = True
+    if st.button("🗑️ Reset All Progress"):
+        for doc in chats_col.stream():
+            doc.reference.delete()
+        st.session_state.messages = []
+        st.rerun()
 
-if st.session_state.show_history:
-    with st.sidebar:
-        st.markdown("## 🕒 Chat History")
 
-        for convo in conversations:
-            convo_data = convo.to_dict()
-            convo_id = convo.id
+       
 
-            with st.container():
-                col1, col2 = st.columns([5, 1])
-
-                with col1:
-                    if st.button(
-                        f"📝 {convo_data['title']}",
-                        key=f"open_{convo_id}"
-                    ):
-                        st.session_state.active_conversation = convo_id
-                        st.session_state.show_history = False
-                        st.rerun()
-
-                with col2:
-                    if st.button("⋮", key=f"menu_{convo_id}"):
-                        st.session_state.delete_target = convo_id
-if "delete_target" not in st.session_state:
-    st.session_state.delete_target = None
-if st.session_state.delete_target:
-    with st.sidebar:
-        st.warning("Delete this chat history?")
-        col1, col2 = st.columns(2)
-
-        if col1.button("Delete"):
-            firestore_db.collection("users") \
-                .document(user_uid) \
-                .collection("conversations") \
-                .document(st.session_state.delete_target) \
-                .delete()
-
-            st.session_state.delete_target = None
-            st.rerun()
-
-        if col2.button("Cancel"):
-            st.session_state.delete_target = None
 
 chat_display = st.container()
 with chat_display:
@@ -347,32 +289,17 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
     if up_img:
         st.image(up_img, caption="Image Attachment Ready", width=300)
 
+
 if prompt := st.chat_input(f"Ask your {feature}..."):
 
-    # 🔹 Create conversation on first message
-    if st.session_state.active_conversation is None:
-        convo_ref = conversations_ref.add({
-            "title": prompt[:40],
-            "created_at": firestore.SERVER_TIMESTAMP,
-            "last_updated": firestore.SERVER_TIMESTAMP
-        })
-        st.session_state.active_conversation = convo_ref[1].id
-
-    # 🔹 Messages collection for active conversation
-    messages_ref = (
-        conversations_ref
-        .document(st.session_state.active_conversation)
-        .collection("messages")
-    )
-
-    # 🔹 Save user message (UI)
+    # 1️⃣ Add user message to UI memory
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
     })
 
-    # 🔹 Save user message (Firestore)
-    messages_ref.add({
+    # 2️⃣ Store user message in Firestore
+    chats_col.add({
         "role": "user",
         "content": prompt,
         "timestamp": firestore.SERVER_TIMESTAMP
@@ -384,26 +311,13 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             if up_img:
                 st.image(up_img, width=300)
 
-    # 🔹 Read memory safely
-    memory_doc = memory_ref.get()
-    long_term_memory = (
-        memory_doc.to_dict().get("long_term_summary", "")
-        if memory_doc.exists else ""
-    )
-
     with st.chat_message("assistant"):
         resp_placeholder = st.empty()
 
-        SYSTEM_PROMPT = f"""
-You are an Elite Academic Mentor AI.
-
-User Memory:
-{long_term_memory}
-
-Current Mode: {feature}
-Response Style: {'Detailed Research' if deep_dive else 'Concise Insight'}
-
-Be consistent with the user's past goals and preferences.
+        SYSTEM_PROMPT = f"""You are an Elite Academic Mentor AI.
+        User Memory:{long_term_memory}
+        Current Mode: {feature}
+        Response Style: {'Detailed Research' if deep_dive else 'Concise Insight'}Be consistent with the user's past goals and preferences.
 """
 
         try:
@@ -423,24 +337,17 @@ Be consistent with the user's past goals and preferences.
             final_answer = response.text
             resp_placeholder.markdown(final_answer)
 
-            # 🔹 Save assistant message (UI)
+            # 3️⃣ Add assistant message to UI memory
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": final_answer
             })
 
-            # 🔹 Save assistant message (Firestore)
-            messages_ref.add({
+            # 4️⃣ Store assistant message in Firestore
+            chats_col.add({
                 "role": "assistant",
                 "content": final_answer,
                 "timestamp": firestore.SERVER_TIMESTAMP
-            })
-
-            # 🔹 Update conversation timestamp
-            conversations_ref.document(
-                st.session_state.active_conversation
-            ).update({
-                "last_updated": firestore.SERVER_TIMESTAMP
             })
 
             st.rerun()
