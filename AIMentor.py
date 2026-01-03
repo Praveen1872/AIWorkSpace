@@ -194,16 +194,17 @@ if "messages" not in st.session_state:
 
 with st.sidebar:
     st.markdown("<h2 style='color: #FF6042;'>🛠️ Workspace</h2>", unsafe_allow_html=True)
+
     feature = st.radio("Model Context:", ["Doubts Solver", "Career Guide"])
     st.markdown("---")
     deep_dive = st.toggle("Detailed Mode (Deep Dive)", value=False)
+
     if st.button("🗑️ Reset All Progress"):
-        st.session_state.messages = []
         for doc in chats_col.stream():
             doc.reference.delete()
+        st.session_state.messages = []
+        st.rerun()
 
-    st.session_state.messages = []
-    st.rerun()
 
        
 
@@ -226,51 +227,66 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
 
 
 if prompt := st.chat_input(f"Ask your {feature}..."):
+
+    # 1️⃣ Add user message to UI memory
+    st.session_state.messages.append({
+        "role": "user",
+        "content": prompt
+    })
+
+    # 2️⃣ Store user message in Firestore
     chats_col.add({
-    "role": "user",
-    "content": prompt,
-    "timestamp": firestore.SERVER_TIMESTAMP
-})
+        "role": "user",
+        "content": prompt,
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
+
     with chat_display:
         with st.chat_message("user"):
             st.markdown(prompt)
-            if up_img: st.image(up_img, width=300)
+            if up_img:
+                st.image(up_img, width=300)
 
     with st.chat_message("assistant"):
         resp_placeholder = st.empty()
-        
+
         SYSTEM_PROMPT = (
             f"You are an Elite Academic Mentor. Current Focus: {feature}. "
-            f"Tone: Encouraging and Academic. Mode: {'Detailed Research' if deep_dive else 'Concise Insight'}."
+            f"Tone: Encouraging and Academic. "
+            f"Mode: {'Detailed Research' if deep_dive else 'Concise Insight'}."
         )
-        
+
         try:
             input_data = [prompt]
             if up_img:
                 img = PIL.Image.open(up_img)
                 input_data.append(img)
-            
-        
+
             response = client.models.generate_content(
                 model=MODEL_ID,
                 contents=input_data,
-                config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT)
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT
+                )
             )
 
             final_answer = response.text
             resp_placeholder.markdown(final_answer)
-            
-            
-            st.session_state.messages.append({"role": "assistant", "content": final_answer})
 
+            # 3️⃣ Add assistant message to UI memory
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": final_answer
+            })
+
+            # 4️⃣ Store assistant message in Firestore
             chats_col.add({
-                  "role": "assistant",
-                     "content": final_answer,
-              "timestamp": firestore.SERVER_TIMESTAMP
-                  })
+                "role": "assistant",
+                "content": final_answer,
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
 
             st.rerun()
-
 
         except Exception as e:
             st.error(f"AI Connection Failed: {e}")
