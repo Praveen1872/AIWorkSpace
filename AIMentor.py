@@ -174,6 +174,9 @@ if not is_logged_in:
 
         st.stop()
 
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+is_logged_in = st.session_state.logged_in
 
 user_uid = st.session_state.get("user_uid", "guest_user")
 
@@ -239,8 +242,10 @@ Keep it concise (5–7 lines).
         "long_term_summary": response.text,
         "updated_at": firestore.SERVER_TIMESTAMP
     })
-if len(st.session_state.messages) % 4 == 0:
-    update_long_term_memory(chats_col, memory_ref)
+if "messages" in st.session_state and len(st.session_state.messages) > 0:
+    if len(st.session_state.messages) % 4 == 0:
+        update_long_term_memory(chats_col, memory_ref)
+
 
 
 if "messages" not in st.session_state:
