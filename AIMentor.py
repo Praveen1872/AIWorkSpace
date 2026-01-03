@@ -29,7 +29,11 @@ def initialize_firebase():
             st.error(f"Firebase Initialization Failed: {e}")
 
 initialize_firebase()
+
+firestore_db = firestore.client()
+
 client = genai.Client(api_key=API_KEY)
+
 
 MODEL_ID = "gemini-2.5-flash-lite"
 
@@ -170,14 +174,14 @@ if not is_logged_in:
         st.stop()
 
 
-user_uid = st.session_state.get('user_uid', 'guest_user')
+user_uid = st.session_state.get("user_uid", "guest_user")
+
 chats_col = (
     firestore_db
     .collection("users")
     .document(user_uid)
     .collection("chats")
 )
-
 
 
 if "messages" not in st.session_state:
