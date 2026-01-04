@@ -6,3 +6,4 @@ pillow
 python-pptx
 python-docx
 PyPDF2
+reportlab
