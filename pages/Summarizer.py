@@ -130,22 +130,6 @@ if "research_chat_history" not in st.session_state: st.session_state.research_ch
 if "active_context" not in st.session_state: st.session_state.active_context = ""
 if "active_filename" not in st.session_state: st.session_state.active_filename = ""
 
-if st.session_state.active_summary:
-    st.markdown("### 📄 Summary")
-    st.markdown(
-        f"""
-        <div style="
-            background-color:#ffffff;
-            padding:24px;
-            border-radius:12px;
-            border:1px solid #E0DEDD;
-            line-height:1.7;
-        ">
-        {st.session_state.active_summary}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 col_left, col_right = st.columns([2, 1], gap="large")
 with col_left:
