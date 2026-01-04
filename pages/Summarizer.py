@@ -339,7 +339,7 @@ def generate_title_from_content(content):
     )
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
+        model="gemini-2.5-flash",
         contents=prompt
     )
 
