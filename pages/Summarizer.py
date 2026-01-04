@@ -7,15 +7,16 @@ from pptx import Presentation
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
+import firebase_admin
+from firebase_admin import credentials, firestore
 
-# -------------------- Page Config --------------------
 st.set_page_config(
     page_title="Summarizer Lab",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# -------------------- Styling --------------------
+
 st.markdown("""
 <style>
 .stApp {
@@ -29,7 +30,7 @@ div.stButton > button {
     color: black;
     border: none;
     height: 3.2em;
-    width: 100%;
+    width: 80%;
     font-weight: 600;
     transition: all 0.3s ease;
 }
@@ -55,6 +56,28 @@ hr {
 is_logged_in = st.session_state.get('logged_in', False)
 if not is_logged_in:
     st.switch_page("pages/login.py")
+
+
+user_uid = st.session_state.get("user_uid")
+
+def initialize_firebase():
+    if not firebase_admin._apps:
+        creds = dict(st.secrets["firebase_credentials"])
+        creds["private_key"] = creds["private_key"].replace("\\n", "\n")
+        cred = credentials.Certificate(creds)
+        firebase_admin.initialize_app(cred)
+
+initialize_firebase()
+user_uid = st.session_state.get("user_uid")
+firestore_db = firestore.client()
+summary_col = (
+    firestore_db
+    .collection("users")
+    .document(user_uid)
+    .collection("documents")
+    .document("summarized")
+    .collection("items")
+)
 
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
@@ -243,3 +266,98 @@ with col_right:
             })
 
             st.rerun()
+
+def store_summary_chunks(summary_doc_ref, summary_text):
+    chunks_col = summary_doc_ref.collection("chunks")
+
+    # Split by paragraphs and clean
+    paragraphs = [
+        p.strip()
+        for p in summary_text.split("\n")
+        if len(p.strip()) >= 50   # avoid weak/noisy chunks
+    ]
+
+    for idx, p in enumerate(paragraphs):
+        chunks_col.add({
+            "text": p,
+            "embedding": [],      # placeholder for future RAG
+            "order": idx          # preserves original order (IMPORTANT later)
+        })
+def load_user_summaries():
+    docs = (
+        summary_col
+        .order_by("created_at", direction=firestore.Query.DESCENDING)
+        .stream()
+    )
+
+    summaries = []
+    for d in docs:
+        data = d.to_dict() or {}
+        summaries.append({
+            "id": d.id,
+            "title": data.get("title", "Untitled Summary"),
+            "created_at": data.get("created_at"),
+            "source": data.get("source", "summarizer")
+        })
+
+    return summaries
+with st.sidebar:
+    st.subheader("📂 Summary History")
+
+    summaries = load_user_summaries()
+
+    if summaries:
+        title_map = {s["title"]: s["id"] for s in summaries}
+        selected = st.selectbox("Past Summaries", title_map.keys())
+
+        if st.button("📂 Load Summary"):
+            st.session_state.active_summary_id = title_map[selected]
+            st.rerun()
+
+    if st.button("🗑️ Clear All Summaries"):
+        for doc in summary_col.stream():
+            for c in doc.reference.collection("chunks").stream():
+                c.reference.delete()
+            doc.reference.delete()
+
+        st.session_state.pop("summary_text", None)
+        st.rerun()
+if "active_summary_id" in st.session_state:
+    doc_ref = summary_col.document(st.session_state.active_summary_id)
+    chunks = doc_ref.collection("chunks").stream()
+
+    summary_text = "\n\n".join(
+        c.to_dict()["text"] for c in chunks
+    )
+
+    st.session_state.summary_text = summary_text
+def generate_title_from_content(content):
+    prompt = (
+        "Generate a short, clear academic title (max 8 words) "
+        "that best represents the following document:\n\n"
+        + content[:3000]
+    )
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash-lite",
+        contents=prompt
+    )
+
+    return response.text.strip().replace("\n", "")
+# 1. Generate title from document content
+doc_title = generate_title_from_content(st.session_state.summary_output)
+
+# 2. Create Firestore document
+summary_doc_ref = summary_col.document()
+
+summary_doc_ref.set({
+    "title": doc_title,
+    "created_at": firestore.SERVER_TIMESTAMP,
+    "source": "summarizer"
+})
+
+# 3. Store chunks
+store_summary_chunks(summary_doc_ref, summary_text)
+
+# 4. Track active summary
+st.session_state.active_summary_id = summary_doc_ref.id
