@@ -134,9 +134,8 @@ if "active_filename" not in st.session_state: st.session_state.active_filename =
 col_left, col_right = st.columns([2, 1], gap="large")
 with col_left:
     st.title("📑 Summarizer Lab")
-    
 
-    # 📎 File upload
+    # 1️⃣ File Attach
     with st.container(border=True):
         att_file = st.file_uploader(
             "📎 Attach PDF / DOCX / PPTX",
@@ -151,35 +150,43 @@ with col_left:
                     st.session_state.active_filename = att_file.name
                     st.success(f"Attached: {att_file.name}")
 
-    # ✅ SUMMARY MUST BE HERE
-    if st.session_state.active_summary:
-        st.markdown("### 📄 Summary")
-        st.markdown(
-            f"""
-            <div style="
-                background-color:#ffffff;
-                padding:24px;
-                border-radius:12px;
-                border:1px solid #E0DEDD;
-                line-height:1.7;
-            ">
-            {st.session_state.active_summary}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    # 2️⃣ Summary Button (ONLY HERE)
+    if st.session_state.active_context:
+        if st.button("✨ Generate Summary", type="primary", use_container_width=True):
+            with st.spinner("Generating summary..."):
+                summary = call_research_ai(
+                    "Summarize",
+                    st.session_state.active_context,
+                    is_summary=True
+                )
+                st.session_state.summary_output = summary
+
+    # 3️⃣ Summary Output Container (NOT CHAT)
+    if st.session_state.summary_output:
+        with st.container(border=True):
+            st.markdown("### 📄 Summary")
+            st.markdown(st.session_state.summary_output)
 
 with col_right:
     st.title("🤖 AI Assistant")
     st.caption("Instant doubt clarification from the attached document")
 
     if not st.session_state.active_context:
-        st.info("📎 Attach a document to begin.")
+        st.info("📎 Attach a document from the left panel to begin.")
     else:
+        # Chat history container
+        chat_box = st.container(height=420)
+
+        with chat_box:
+            for msg in st.session_state.assistant_chat:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
+
+        # Chat input (ONLY HERE)
         question = st.chat_input("Ask a question about this document")
 
         if question:
-            st.session_state.research_chat_history.append({
+            st.session_state.assistant_chat.append({
                 "role": "user",
                 "content": question
             })
@@ -190,16 +197,10 @@ with col_right:
                     st.session_state.active_context
                 )
 
-                st.session_state.research_chat_history.append({
-                    "role": "assistant",
-                    "content": answer
-                })
+            st.session_state.assistant_chat.append({
+                "role": "assistant",
+                "content": answer
+            })
 
-                st.rerun()
+            st.rerun()
 
-chat_container = st.container(height=500)
-
-with chat_container:
-        for message in st.session_state.research_chat_history:
-            with st.chat_message(message["role"]):
-             st.markdown(message["content"])
