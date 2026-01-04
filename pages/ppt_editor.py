@@ -107,10 +107,6 @@ ppt_col = (
     .document("ppt")
     .collection("items")
 )
-def shorten_title(title, max_len=40):
-    if len(title) <= max_len:
-        return title
-    return title[:max_len].rsplit(" ", 1)[0] + "..."
 
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
@@ -203,17 +199,9 @@ with st.sidebar:
     st.subheader("📂 PPT History")
 
     ppt_docs = load_user_ppts()
-
     if ppt_docs:
-        title_map = {
-            f"{i+1}. {shorten_title(p['title'])}": p["id"]
-            for i, p in enumerate(ppt_docs)
-        }
-
-        selected = st.selectbox(
-            "Past PPTs",
-            title_map.keys()
-        )
+        title_map = {p["title"]: p["id"] for p in ppt_docs}
+        selected = st.selectbox("Past PPTs", title_map.keys())
 
         if st.button("📂 Load PPT"):
             st.session_state.active_ppt_id = title_map[selected]
@@ -224,10 +212,8 @@ with st.sidebar:
             for c in doc.reference.collection("chunks").stream():
                 c.reference.delete()
             doc.reference.delete()
-
         st.session_state.pop("ppt_data", None)
         st.rerun()
-
 if "active_ppt_id" in st.session_state:
     ppt_doc = ppt_col.document(st.session_state.active_ppt_id)
     chunks = ppt_doc.collection("chunks").stream()

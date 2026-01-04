@@ -79,6 +79,10 @@ summary_col = (
     .collection("items")
 )
 
+def shorten_title(title, max_len=40):
+    if len(title) <= max_len:
+        return title
+    return title[:max_len].rsplit(" ", 1)[0] + "..."
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
 with h_cols[0]: 
@@ -307,8 +311,15 @@ with st.sidebar:
     summaries = load_user_summaries()
 
     if summaries:
-        title_map = {s["title"]: s["id"] for s in summaries}
-        selected = st.selectbox("Past Summaries", title_map.keys())
+        title_map = {
+            f"{i+1}. {shorten_title(s['title'])}": s["id"]
+            for i, s in enumerate(summaries)
+        }
+
+        selected = st.selectbox(
+            "Past Summaries",
+            title_map.keys()
+        )
 
         if st.button("📂 Load Summary"):
             st.session_state.active_summary_id = title_map[selected]
@@ -322,6 +333,7 @@ with st.sidebar:
 
         st.session_state.pop("summary_text", None)
         st.rerun()
+
 if "active_summary_id" in st.session_state:
     doc_ref = summary_col.document(st.session_state.active_summary_id)
     chunks = doc_ref.collection("chunks").stream()
