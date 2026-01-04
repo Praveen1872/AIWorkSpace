@@ -3,12 +3,33 @@ from google import genai
 from docx import Document
 from io import BytesIO
 import re
-
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 is_logged_in = st.session_state.get('logged_in', False)
 if not is_logged_in:
     st.switch_page("pages/login.py")
+def initialize_firebase():
+    if not firebase_admin._apps:
+        creds = dict(st.secrets["firebase_credentials"])
+        creds["private_key"] = creds["private_key"].replace("\\n", "\n")
+        cred = credentials.Certificate(creds)
+        firebase_admin.initialize_app(cred)
 
+initialize_firebase()
+user_uid = st.session_state.get("user_uid")
+firestore_db = firestore.client()
+word_col = (
+    firestore_db
+    .collection("users")
+    .document(user_uid)
+    .collection("documents")
+    .document("word")
+    .collection("items")
+)
+def shorten_title(text, max_len=60):
+    text = re.sub(r'\s+', ' ', text.strip())
+    return text if len(text) <= max_len else text[:max_len].rsplit(" ", 1)[0] + "…"
 
 h_cols = st.columns([2, 0.7, 0.7, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
 with h_cols[0]: 
@@ -96,6 +117,30 @@ if st.button("Generate Report ", use_container_width=True):
     else:
         st.warning("Please enter a topic to begin.")
 
+word_doc_ref = word_col.document()  # auto docId
+
+word_doc_ref.set({
+    "title": shorten_title(prompt),
+    "created_at": firestore.SERVER_TIMESTAMP,
+    "source": "word_generator"
+})
+def store_word_chunks(word_doc_ref, full_text):
+    chunks_col = word_doc_ref.collection("chunks")
+
+    paragraphs = [
+        p.strip() for p in full_text.split("\n")
+        if len(p.strip()) > 40
+    ]
+
+    for p in paragraphs:
+        chunks_col.add({
+            "text": p,
+            "embedding": []  # placeholder for future RAG
+        })
+
+store_word_chunks(word_doc_ref, response.text)
+
+st.session_state.active_word_id = word_doc_ref.id
 
 if "report_text" in st.session_state:
     final_text = st.text_area("Review & Edit Draft", value=st.session_state.report_text, height=500)
@@ -103,9 +148,61 @@ if "report_text" in st.session_state:
     safe_filename = clean_text(topic).replace(' ', '_')[:20]
     
     st.download_button(
-        label="📥 Download as Microsoft Word (.docx)",
+        label="📥 Download as Word (.docx)",
         data=word_file,
         file_name=f"Report_{safe_filename}.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         use_container_width=True
     )
+firestore_db = firestore.client()
+def load_user_words():
+    docs = word_col.order_by(
+        "created_at",
+        direction=firestore.Query.DESCENDING
+    ).stream()
+
+    return [{"id": d.id, **d.to_dict()} for d in docs]
+with st.sidebar:
+    st.subheader("📂 Word History")
+
+    words = load_user_words()
+
+    if words:
+        title_map = {
+            f"{i+1}. {shorten_title(w['title'])}": w["id"]
+            for i, w in enumerate(words)
+        }
+
+        selected = st.selectbox(
+            "Past Documents",
+            title_map.keys()
+        )
+
+        if st.button("📂 Load Document"):
+            st.session_state.active_word_id = title_map[selected]
+            st.rerun()
+
+    if st.button("🗑️ Clear All Word Docs"):
+        for doc in word_col.stream():
+            for c in doc.reference.collection("chunks").stream():
+                c.reference.delete()
+            doc.reference.delete()
+
+        st.session_state.pop("word_text", None)
+        st.rerun()
+def load_user_words():
+    docs = word_col.order_by(
+        "created_at",
+        direction=firestore.Query.DESCENDING
+    ).stream()
+
+    return [{"id": d.id, **d.to_dict()} for d in docs]
+if "active_word_id" in st.session_state:
+    word_doc = word_col.document(st.session_state.active_word_id)
+    chunks = word_doc.collection("chunks").stream()
+
+    full_text = "\n\n".join(
+        c.to_dict()["text"] for c in chunks
+    )
+
+    st.session_state.word_text = full_text
