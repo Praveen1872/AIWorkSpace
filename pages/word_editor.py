@@ -142,7 +142,7 @@ if st.button("Generate Report", use_container_width=True):
                     "created_at": firestore.SERVER_TIMESTAMP,
                     "source": "word_generator"
                 })
-
+                st.session_state.active_word_id = word_doc_ref.id
                 # ✅ ALWAYS READ FROM SESSION STATE
                 store_word_chunks(
                     word_doc_ref,
@@ -162,7 +162,7 @@ if st.button("Generate Report", use_container_width=True):
 
 
 
-st.session_state.active_word_id = word_doc_ref.id
+
 
 if "report_text" in st.session_state:
     final_text = st.text_area("Review & Edit Draft", value=st.session_state.report_text, height=500)
