@@ -104,8 +104,10 @@ ppt_col = (
     .collection("users")
     .document(user_uid)
     .collection("documents")
-    .collection("ppt")
+    .document("ppt")
+    .collection("items")
 )
+
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
 with h_cols[0]: 
