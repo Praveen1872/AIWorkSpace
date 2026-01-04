@@ -134,6 +134,12 @@ if "active_filename" not in st.session_state: st.session_state.active_filename =
 col_left, col_right = st.columns([2, 1], gap="large")
 with col_left:
     st.title("📑 Summarizer Lab")
+    chat_container = st.container(height=500)
+
+    with chat_container:
+        for message in st.session_state.research_chat_history:
+            with st.chat_message(message["role"]):
+             st.markdown(message["content"])
 
     # 📎 File upload
     with st.container(border=True):
@@ -168,39 +174,31 @@ with col_left:
             unsafe_allow_html=True
         )
 
-    # 💬 Chat container
-    chat_container = st.container(height=450)
-
 with col_right:
-    st.markdown("## 🤖 AI Assistant")
+    st.title("🤖 AI Assistant")
     st.caption("Instant doubt clarification from the attached document")
 
-    with st.container(border=True):
-        if not st.session_state.active_context:
-            st.info("📎 Attach a document from the left panel to begin.")
+    if not st.session_state.active_context:
+        st.info("📎 Attach a document to begin.")
+    else:
+        question = st.chat_input("Ask a question about this document")
 
-        else:
-            st.write(f"📄 **Active Document:** {st.session_state.active_filename}")
-            if st.button("✨ Generate Summary", type="primary", use_container_width=True):
-                with st.spinner("Synthesizing..."):
-                    st.session_state.active_summary = call_research_ai(
-            "Summarize",
-            st.session_state.active_context,
-            is_summary=True
-        )
-        st.rerun()
+        if question:
+            st.session_state.research_chat_history.append({
+                "role": "user",
+                "content": question
+            })
 
+            with st.spinner("Thinking..."):
+                answer = call_research_ai(
+                    question,
+                    st.session_state.active_context
+                )
 
-           
+                st.session_state.research_chat_history.append({
+                    "role": "assistant",
+                    "content": answer
+                })
 
-        st.session_state.active_summary = summary
-
-
-        st.rerun()
-
-        if st.button("🗑️ Clear Session", use_container_width=True):
-                st.session_state.active_context = ""
-                st.session_state.active_filename = ""
-                st.session_state.research_chat_history = []
                 st.rerun()
 
