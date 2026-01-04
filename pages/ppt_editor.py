@@ -97,6 +97,7 @@ def initialize_firebase():
         firebase_admin.initialize_app(cred)
 
 initialize_firebase()
+user_uid = st.session_state.get("user_uid")
 firestore_db = firestore.client()
 ppt_col = (
     firestore_db
@@ -106,6 +107,7 @@ ppt_col = (
     .document("ppt")
     .collection("items")
 )
+
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
 with h_cols[0]: 
@@ -180,8 +182,9 @@ def store_ppt_chunks(ppt_doc_ref, slides):
         text = s.get("title", "") + " " + " ".join(s.get("points", []))
         chunks_col.add({
             "text": text.strip(),
-            "embedding": []   # placeholder only
+            "embedding": []  # placeholder for future RAG
         })
+
 def load_user_ppts():
     docs = ppt_col.order_by("created_at", direction=firestore.Query.DESCENDING).stream()
     return [{"id": d.id, **d.to_dict()} for d in docs]
@@ -213,6 +216,15 @@ if "active_ppt_id" in st.session_state:
     for c in chunks:
         slides.append({"title": "", "points": [c.to_dict()["text"]]})
     st.session_state.ppt_data = slides
+if st.button("🗑️ Clear PPT History"):
+    for doc in ppt_col.stream():
+        for c in doc.reference.collection("chunks").stream():
+            c.reference.delete()
+        doc.reference.delete()
+
+    st.session_state.pop("ppt_data", None)
+    st.rerun()
+
 with col_stage:
     st.title("🖼️ Slides Editor")
     
@@ -307,4 +319,13 @@ with col_chat:
                     "content": f"Done", 
                     "advice": advice
                 })
+                ppt_doc_ref = ppt_col.document()
+                ppt_doc_ref.set({
+                    "title": user_in,  # first prompt = PPT title
+                      "created_at": firestore.SERVER_TIMESTAMP,
+                        "source": "ppt_generator"
+})
+                store_ppt_chunks(ppt_doc_ref, new_slides)
+                st.session_state.active_ppt_id = ppt_doc_ref.id
+
                 st.rerun()
