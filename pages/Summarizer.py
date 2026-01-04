@@ -119,7 +119,7 @@ def call_research_ai(user_query, context_text=None, is_summary=False):
         user_query = "Provide a comprehensive summary: Abstract, Key Findings, and Technical Implications."
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite", 
+            model="gemini-2.5-flash", 
             contents=user_query, 
             config={"system_instruction": system_instr}
         )
