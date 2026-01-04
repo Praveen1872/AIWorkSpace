@@ -64,6 +64,8 @@ is_logged_in = st.session_state.get('logged_in', False)
 if not is_logged_in:
     st.switch_page("pages/login.py")
 
+if "active_summary" not in st.session_state:
+    st.session_state.active_summary = ""
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
 with h_cols[0]: 
@@ -128,58 +130,79 @@ if "research_chat_history" not in st.session_state: st.session_state.research_ch
 if "active_context" not in st.session_state: st.session_state.active_context = ""
 if "active_filename" not in st.session_state: st.session_state.active_filename = ""
 
+if st.session_state.active_summary:
+    st.markdown("### 📄 Summary")
+    st.markdown(
+        f"""
+        <div style="
+            background-color:#ffffff;
+            padding:24px;
+            border-radius:12px;
+            border:1px solid #E0DEDD;
+            line-height:1.7;
+        ">
+        {st.session_state.active_summary}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 col_left, col_right = st.columns([2, 1], gap="large")
-
 with col_left:
     st.title("📑 Summarizer Lab")
-    chat_container = st.container(height=500)
-    
-    with chat_container:
-        if not st.session_state.research_chat_history:
-            st.info("👋 Upload a document on the right to start your research session.")
-        for message in st.session_state.research_chat_history:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
 
-    if user_input := st.chat_input("Ask about the document..."):
-        st.session_state.research_chat_history.append({"role": "user", "content": user_input})
-        with chat_container:
-            with st.chat_message("user"): st.markdown(user_input)
-            with st.chat_message("assistant"):
-                with st.spinner("Consulting source..."):
-                    ai_response = call_research_ai(user_input, st.session_state.active_context)
-                    st.markdown(ai_response)
-                    st.session_state.research_chat_history.append({"role": "assistant", "content": ai_response})
-                    st.rerun()
+    # 🔽 FILE UPLOAD MOVED HERE
+    with st.container(border=True):
+        att_file = st.file_uploader(
+            "📎 Attach PDF / DOCX / PPTX",
+            type=["pdf", "docx", "pptx"]
+        )
+
+        if att_file and st.button("📥 Attach", use_container_width=True):
+            with st.spinner("Analyzing document..."):
+                content = extract_text_from_any(att_file)
+                if content:
+                    st.session_state.active_context = content
+                    st.session_state.active_filename = att_file.name
+                    st.success(f"Attached: {att_file.name}")
+
+    chat_container = st.container(height=450)
 
 with col_right:
-    st.markdown("### 📎 Research Sources")
-    with st.container(border=True):
-        att_file = st.file_uploader("Upload PDF, DOCX, or PPTX", type=["pdf", "docx", "pptx"])
-        
-        if att_file:
-            if st.button("📥 ready", use_container_width=True):
-                with st.spinner("Analyzing..."):
-                    content = extract_text_from_any(att_file)
-                    if content:
-                        st.session_state.active_context = content
-                        st.session_state.active_filename = att_file.name
-                        st.success(f"Ready: {att_file.name}")
+    st.markdown("## 🤖 AI Assistant")
+    st.caption("Instant doubt clarification from the attached document")
 
-    if st.session_state.active_context:
-        st.write(f"📄 **Active:** {st.session_state.active_filename}")
-        if st.button("✨ Summarize", type="primary", use_container_width=True):
-            with st.spinner("Synthesizing..."):
-                summary = call_research_ai("Summarize", st.session_state.active_context, is_summary=True)
-                st.session_state.research_chat_history.append({
-                    "role": "assistant", 
-                    "content": f"### 📄 Summary of {st.session_state.active_filename}\n\n{summary}"
-                })
+    with st.container(border=True):
+        if not st.session_state.active_context:
+            st.info("📎 Attach a document from the left panel to begin.")
+
+        else:
+            st.write(f"📄 **Active Document:** {st.session_state.active_filename}")
+            if st.button("✨ Generate Summary", type="primary", use_container_width=True):
+                with st.spinner("Synthesizing..."):
+                    st.session_state.active_summary = call_research_ai(
+            "Summarize",
+            st.session_state.active_context,
+            is_summary=True
+        )
+        st.rerun()
+
+
+           
+
+        st.session_state.active_summary = summary
+
+
+        st.rerun()
+
+        if st.button("🗑️ Clear Session", use_container_width=True):
+                st.session_state.active_context = ""
+                st.session_state.active_filename = ""
+                st.session_state.research_chat_history = []
                 st.rerun()
-        
-        if st.button("🗑️ Clear Workspace", use_container_width=True):
-            st.session_state.active_context = ""
-            st.session_state.active_filename = ""
-            st.session_state.research_chat_history = []
-            st.rerun()
+chat_container = st.container(height=450)
+
+with chat_container:
+    for message in st.session_state.research_chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
