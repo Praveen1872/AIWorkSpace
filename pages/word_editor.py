@@ -153,10 +153,9 @@ def store_word_chunks(word_doc_ref, full_text):
             "text": p,
             "embedding": []  # placeholder for future RAG
         })
-generated_text = response.text
-st.session_state.report_text = generated_text
 
-store_word_chunks(word_doc_ref,generated_text )
+
+store_word_chunks(word_doc_ref, generated_text)
 
 st.session_state.active_word_id = word_doc_ref.id
 
