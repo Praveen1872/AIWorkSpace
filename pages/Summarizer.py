@@ -174,33 +174,39 @@ with col_left:
                     "Provide a structured summary with Abstract, Key Findings, and Technical Implications.",
                     st.session_state.active_context
                 )
+if st.session_state.summary_output:
+    st.markdown("### 📄 Summary")
 
-    # Summary output (ONLY HERE)
-    if st.session_state.summary_output:
-        with st.container(border=True):
-            st.markdown("### 📄 Summary")
-            st.markdown(st.session_state.summary_output)
+    st.markdown(
+        f"""
+        <div class="summary-scroll">
+            {st.session_state.summary_output}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-        pdf_buffer = generate_summary_pdf(st.session_state.summary_output)
+    pdf_buffer = generate_summary_pdf(st.session_state.summary_output)
 
-        c1, c2 = st.columns(2)
+    c1, c2 = st.columns(2)
 
-        with c1:
-            st.download_button(
-                label="📥 Download PDF",
-                data=pdf_buffer,
-                file_name="summary.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
+    with c1:
+        st.download_button(
+            "📥 Download PDF",
+            data=pdf_buffer,
+            file_name="summary.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
 
-        with c2:
-            if st.button("🧹 Clear Summary", use_container_width=True):
-                st.session_state.summary_output = ""
-                st.session_state.active_context = ""
-                st.session_state.active_filename = ""
-                st.session_state.assistant_chat = []
-                st.rerun()
+    with c2:
+        if st.button("🧹 Clear Summary", use_container_width=True):
+            st.session_state.summary_output = ""
+            st.session_state.active_context = ""
+            st.session_state.active_filename = ""
+            st.session_state.assistant_chat = []
+            st.rerun()
+
 
 # ==================== RIGHT: AI ASSISTANT ====================
 with col_right:
