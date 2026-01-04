@@ -303,9 +303,8 @@ with col_chat:
                 st.markdown(f'<div class="mentor-box">💡 {m["advice"]}</div>', unsafe_allow_html=True)
     ppt_prompt = st.chat_input("Enter PPT topic")
 
-
 if user_in := ppt_prompt:
-    # Store chat
+    # Store user chat
     st.session_state.chat_history.append({
         "role": "user",
         "content": user_in
@@ -325,7 +324,7 @@ if user_in := ppt_prompt:
         )
 
         if new_slides:
-            # Update session PPT data
+            # Update session slides
             st.session_state.ppt_data = new_slides
 
             st.session_state.chat_history.append({
@@ -334,19 +333,27 @@ if user_in := ppt_prompt:
                 "advice": advice
             })
 
-            # ✅ CREATE ONE PPT DOCUMENT (CORRECT PLACE)
-            ppt_doc_ref = ppt_col.document()   # auto docId
+            # -------------------------------
+            # 🔹 CREATE or REUSE PPT DOCUMENT
+            # -------------------------------
+            if edit_mode and "active_ppt_id" in st.session_state:
+                ppt_doc_ref = ppt_col.document(st.session_state.active_ppt_id)
 
-            ppt_doc_ref.set({
-                "title": user_in,   # FIRST USER PROMPT AS TITLE
-                "created_at": firestore.SERVER_TIMESTAMP,
-                "source": "ppt_generator"
-            })
+                # ❗ clear old chunks
+                for c in ppt_doc_ref.collection("chunks").stream():
+                    c.reference.delete()
+            else:
+                ppt_doc_ref = ppt_col.document()
+                ppt_doc_ref.set({
+                    "title": user_in,   # first prompt = title
+                    "created_at": firestore.SERVER_TIMESTAMP,
+                    "source": "ppt_generator"
+                })
+                st.session_state.active_ppt_id = ppt_doc_ref.id
 
-            # ✅ STORE SLIDE CHUNKS (ONLY ONCE)
+            # -------------------------------
+            # 🔹 STORE UPDATED CHUNKS
+            # -------------------------------
             store_ppt_chunks(ppt_doc_ref, new_slides)
-
-            # Track active PPT
-            st.session_state.active_ppt_id = ppt_doc_ref.id
 
             st.rerun()
