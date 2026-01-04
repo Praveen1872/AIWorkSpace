@@ -40,6 +40,14 @@ div.stButton > button:hover {
 hr {
     border-top: 1px solid #E0DEDD;
 }
+    .summary-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #FFFFFF;
+    border-radius: 10px;
+    border: 1px solid #E0DEDD;
+}
 </style>
 """, unsafe_allow_html=True)
 
