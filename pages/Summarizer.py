@@ -151,7 +151,7 @@ col_left, col_right = st.columns([2, 1], gap="large")
 with col_left:
     st.title("📑 Summarizer Lab")
 
-    # 🔽 FILE UPLOAD MOVED HERE
+    # 📎 File upload
     with st.container(border=True):
         att_file = st.file_uploader(
             "📎 Attach PDF / DOCX / PPTX",
@@ -166,6 +166,25 @@ with col_left:
                     st.session_state.active_filename = att_file.name
                     st.success(f"Attached: {att_file.name}")
 
+    # ✅ SUMMARY MUST BE HERE
+    if st.session_state.active_summary:
+        st.markdown("### 📄 Summary")
+        st.markdown(
+            f"""
+            <div style="
+                background-color:#ffffff;
+                padding:24px;
+                border-radius:12px;
+                border:1px solid #E0DEDD;
+                line-height:1.7;
+            ">
+            {st.session_state.active_summary}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # 💬 Chat container
     chat_container = st.container(height=450)
 
 with col_right:
