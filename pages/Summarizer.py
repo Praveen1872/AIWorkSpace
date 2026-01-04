@@ -134,12 +134,7 @@ if "active_filename" not in st.session_state: st.session_state.active_filename =
 col_left, col_right = st.columns([2, 1], gap="large")
 with col_left:
     st.title("📑 Summarizer Lab")
-    chat_container = st.container(height=500)
-
-    with chat_container:
-        for message in st.session_state.research_chat_history:
-            with st.chat_message(message["role"]):
-             st.markdown(message["content"])
+    
 
     # 📎 File upload
     with st.container(border=True):
@@ -202,3 +197,9 @@ with col_right:
 
                 st.rerun()
 
+chat_container = st.container(height=500)
+
+with chat_container:
+        for message in st.session_state.research_chat_history:
+            with st.chat_message(message["role"]):
+             st.markdown(message["content"])
