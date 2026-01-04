@@ -220,6 +220,7 @@ if "active_ppt_id" in st.session_state:
     for c in chunks:
         slides.append({"title": "", "points": [c.to_dict()["text"]]})
     st.session_state.ppt_data = slides
+col_stage, col_chat = st.columns([1.8, 1], gap="large")
 with col_stage:
     st.title("🖼️ Slides Editor")
     
