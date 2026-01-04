@@ -59,10 +59,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.set_page_config(page_title="Summarizer Lab", layout="wide", initial_sidebar_state="collapsed")
-
+'''
 is_logged_in = st.session_state.get('logged_in', False)
 if not is_logged_in:
-    st.switch_page("pages/login.py")
+    st.switch_page("pages/login.py")'''
 
 if "active_summary" not in st.session_state:
     st.session_state.active_summary = ""
@@ -204,3 +204,9 @@ with col_right:
 
             st.rerun()
 
+chat_container = st.container(height=500)
+
+with chat_container:
+        for message in st.session_state.research_chat_history:
+            with st.chat_message(message["role"]):
+             st.markdown(message["content"])
