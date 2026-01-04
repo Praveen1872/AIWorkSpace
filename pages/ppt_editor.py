@@ -178,11 +178,12 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
 
 def store_ppt_chunks(ppt_doc_ref, slides):
     chunks_col = ppt_doc_ref.collection("chunks")
+
     for s in slides:
-        text = s.get("title", "") + " " + " ".join(s.get("points", []))
         chunks_col.add({
-            "text": text.strip(),
-            "embedding": []
+            "title": s.get("title", "").strip(),
+            "points": s.get("points", []),
+            "embedding": []  # placeholder for future RAG
         })
 
 
@@ -216,10 +217,18 @@ with st.sidebar:
 if "active_ppt_id" in st.session_state:
     ppt_doc = ppt_col.document(st.session_state.active_ppt_id)
     chunks = ppt_doc.collection("chunks").stream()
+
     slides = []
     for c in chunks:
-        slides.append({"title": "", "points": [c.to_dict()["text"]]})
+        data = c.to_dict()
+        slides.append({
+            "title": data.get("title", ""),
+            "points": data.get("points", [])
+        })
+
     st.session_state.ppt_data = slides
+
+
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
 with col_stage:
     st.title("🖼️ Slides Editor")
