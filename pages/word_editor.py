@@ -92,6 +92,19 @@ try:
     client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 except Exception as e:
     st.error(f"Gemini Initialization Failed: {e}")
+def store_word_chunks(word_doc_ref, full_text):
+    chunks_col = word_doc_ref.collection("chunks")
+
+    paragraphs = [
+        p.strip() for p in full_text.split("\n")
+        if len(p.strip()) > 40
+    ]
+
+    for p in paragraphs:
+        chunks_col.add({
+            "text": p,
+            "embedding": []  # placeholder for future RAG
+        })
 
 st.title("📄 Report Assistant")
 st.write("Refine and export your research into polished Microsoft Word documents.")
@@ -119,12 +132,24 @@ if st.button("Generate Report", use_container_width=True):
                     )
                 )
 
-                # ✅ ALWAYS EXTRACT FIRST
-                generated_text = response.text
+                # ✅ STORE IN SESSION STATE
+                st.session_state.report_text = response.text
 
-                # ✅ STORE IN SESSION (NOT response DIRECTLY)
-                st.session_state.report_text = generated_text
+                # ✅ CREATE FIRESTORE DOC
+                word_doc_ref = word_col.document()
+                word_doc_ref.set({
+                    "title": shorten_title(topic),
+                    "created_at": firestore.SERVER_TIMESTAMP,
+                    "source": "word_generator"
+                })
 
+                # ✅ ALWAYS READ FROM SESSION STATE
+                store_word_chunks(
+                    word_doc_ref,
+                    st.session_state.report_text
+                )
+
+                st.session_state.active_word_id = word_doc_ref.id
                 st.success("Draft completed!")
 
             except Exception as e:
@@ -133,29 +158,9 @@ if st.button("Generate Report", use_container_width=True):
         st.warning("Please enter a topic to begin.")
 
 
-word_doc_ref = word_col.document()  # auto docId
-
-word_doc_ref.set({
-    "title": shorten_title(topic),
-    "created_at": firestore.SERVER_TIMESTAMP,
-    "source": "word_generator"
-})
-def store_word_chunks(word_doc_ref, full_text):
-    chunks_col = word_doc_ref.collection("chunks")
-
-    paragraphs = [
-        p.strip() for p in full_text.split("\n")
-        if len(p.strip()) > 40
-    ]
-
-    for p in paragraphs:
-        chunks_col.add({
-            "text": p,
-            "embedding": []  # placeholder for future RAG
-        })
 
 
-store_word_chunks(word_doc_ref, generated_text)
+
 
 st.session_state.active_word_id = word_doc_ref.id
 
