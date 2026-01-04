@@ -104,8 +104,7 @@ ppt_col = (
     .collection("users")
     .document(user_uid)
     .collection("documents")
-    .document("ppt")
-    .collection("items")
+    .collection("ppts")   
 )
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
@@ -185,9 +184,12 @@ def store_ppt_chunks(ppt_doc_ref, slides):
         })
 
 def load_user_ppts():
-    docs = ppt_col.order_by("created_at", direction=firestore.Query.DESCENDING).stream()
+    docs = ppt_col.order_by(
+        "created_at",
+        direction=firestore.Query.DESCENDING
+    ).stream()
+
     return [{"id": d.id, **d.to_dict()} for d in docs]
-col_stage, col_chat = st.columns([1.8, 1], gap="large")
 
 with st.sidebar:
     st.subheader("📂 PPT History")
@@ -281,6 +283,7 @@ with col_stage:
     else:
         st.info("👋 Ask the Assistant to generate !")
 
+
 with col_chat:
     st.title("AI Assistant")
     edit_mode = st.toggle("🎯 Edit ONLY Active Slide", value=False)
@@ -309,13 +312,19 @@ with col_chat:
                     "content": f"Done", 
                     "advice": advice
                 })
-                ppt_doc_ref = ppt_col.document()
+                ppt_doc_ref = ppt_col.document()  # auto docId
                 ppt_doc_ref.set({
-                    "title": user_in,  # first prompt = PPT title
-                    "created_at": firestore.SERVER_TIMESTAMP,
+    "title": ppt_prompt,              # first user prompt
+    "created_at": firestore.SERVER_TIMESTAMP,
     "source": "ppt_generator"
 })
+
                 store_ppt_chunks(ppt_doc_ref, new_slides)
                 st.session_state.active_ppt_id = ppt_doc_ref.id
 
                 st.rerun()
+for slide in st.session_state.ppt_data:
+    ppt_doc_ref.collection("chunks").add({
+        "text": f"{slide['title']} - " + " ".join(slide["points"]),
+        "embedding": []  # keep empty for now
+    })
