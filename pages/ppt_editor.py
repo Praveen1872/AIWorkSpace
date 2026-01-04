@@ -1,8 +1,9 @@
 import streamlit as st
+import firebase_admin
+from firebase_admin import credentials, firestore
 from pptx import Presentation
-import io, json, re, time
+import io, json, re
 from google import genai
-
 st.set_page_config(page_title="Slide Architect Pro", layout="wide")
 st.markdown("""
 <style>
@@ -82,10 +83,29 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-is_logged_in = st.session_state.get('logged_in', False)
+is_logged_in = st.session_state.get("logged_in", False)
 if not is_logged_in:
     st.switch_page("pages/login.py")
 
+user_uid = st.session_state.get("user_uid")
+
+def initialize_firebase():
+    if not firebase_admin._apps:
+        creds = dict(st.secrets["firebase_credentials"])
+        creds["private_key"] = creds["private_key"].replace("\\n", "\n")
+        cred = credentials.Certificate(creds)
+        firebase_admin.initialize_app(cred)
+
+initialize_firebase()
+firestore_db = firestore.client()
+ppt_col = (
+    firestore_db
+    .collection("users")
+    .document(user_uid)
+    .collection("documents")
+    .document("ppt")
+    .collection("items")
+)
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
 with h_cols[0]: 
@@ -106,6 +126,7 @@ with h_cols[6]:
     if st.button("Logout 🚪", use_container_width=True):
         st.session_state.logged_in = False
         st.switch_page("AIMentor.py")
+
 
 st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", unsafe_allow_html=True)
 
@@ -153,9 +174,45 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
         except: continue
     return None, None, None
 
-
+def store_ppt_chunks(ppt_doc_ref, slides):
+    chunks_col = ppt_doc_ref.collection("chunks")
+    for s in slides:
+        text = s.get("title", "") + " " + " ".join(s.get("points", []))
+        chunks_col.add({
+            "text": text.strip(),
+            "embedding": []   # placeholder only
+        })
+def load_user_ppts():
+    docs = ppt_col.order_by("created_at", direction=firestore.Query.DESCENDING).stream()
+    return [{"id": d.id, **d.to_dict()} for d in docs]
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
 
+with st.sidebar:
+    st.subheader("📂 PPT History")
+
+    ppt_docs = load_user_ppts()
+    if ppt_docs:
+        title_map = {p["title"]: p["id"] for p in ppt_docs}
+        selected = st.selectbox("Past PPTs", title_map.keys())
+
+        if st.button("📂 Load PPT"):
+            st.session_state.active_ppt_id = title_map[selected]
+            st.rerun()
+
+    if st.button("🗑️ Clear All PPTs"):
+        for doc in ppt_col.stream():
+            for c in doc.reference.collection("chunks").stream():
+                c.reference.delete()
+            doc.reference.delete()
+        st.session_state.pop("ppt_data", None)
+        st.rerun()
+if "active_ppt_id" in st.session_state:
+    ppt_doc = ppt_col.document(st.session_state.active_ppt_id)
+    chunks = ppt_doc.collection("chunks").stream()
+    slides = []
+    for c in chunks:
+        slides.append({"title": "", "points": [c.to_dict()["text"]]})
+    st.session_state.ppt_data = slides
 with col_stage:
     st.title("🖼️ Slides Editor")
     
@@ -220,7 +277,7 @@ with col_stage:
 )
           
     else:
-        st.info("👋 Ask the Assistant to generate a 2-column deck!")
+        st.info("👋 Ask the Assistant to generate !")
 
 with col_chat:
     st.title("AI Assistant")
@@ -235,8 +292,10 @@ with col_chat:
             st.write(m["content"])
             if "advice" in m:
                 st.markdown(f'<div class="mentor-box">💡 {m["advice"]}</div>', unsafe_allow_html=True)
+    ppt_prompt = st.chat_input("Enter PPT topic")
 
-    if user_in := st.chat_input("Ex: 'Create 3 slides on the history of space flight'"):
+
+    if user_in := ppt_prompt:
         st.session_state.chat_history.append({"role": "user", "content": user_in})
         with st.spinner("Architecting ..."):
             idx = st.session_state.current_slide_idx if (edit_mode and "ppt_data" in st.session_state) else None
