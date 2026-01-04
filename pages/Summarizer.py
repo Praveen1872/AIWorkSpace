@@ -150,7 +150,7 @@ def call_research_ai(prompt, context):
     )
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash-tts",
+        model="gemini-2.5-flash",
         contents=prompt,
         config={
             "system_instruction": f"{system}\n\nContext:\n{context[:18000]}"
