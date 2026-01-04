@@ -108,7 +108,6 @@ ppt_col = (
     .collection("items")
 )
 
-
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
 with h_cols[0]: 
     st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
@@ -216,15 +215,6 @@ if "active_ppt_id" in st.session_state:
     for c in chunks:
         slides.append({"title": "", "points": [c.to_dict()["text"]]})
     st.session_state.ppt_data = slides
-if st.button("🗑️ Clear PPT History"):
-    for doc in ppt_col.stream():
-        for c in doc.reference.collection("chunks").stream():
-            c.reference.delete()
-        doc.reference.delete()
-
-    st.session_state.pop("ppt_data", None)
-    st.rerun()
-
 with col_stage:
     st.title("🖼️ Slides Editor")
     
@@ -322,8 +312,8 @@ with col_chat:
                 ppt_doc_ref = ppt_col.document()
                 ppt_doc_ref.set({
                     "title": user_in,  # first prompt = PPT title
-                      "created_at": firestore.SERVER_TIMESTAMP,
-                        "source": "ppt_generator"
+                    "created_at": firestore.SERVER_TIMESTAMP,
+    "source": "ppt_generator"
 })
                 store_ppt_chunks(ppt_doc_ref, new_slides)
                 st.session_state.active_ppt_id = ppt_doc_ref.id
