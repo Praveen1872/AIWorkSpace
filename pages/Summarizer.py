@@ -355,9 +355,9 @@ summary_doc_ref.set({
     "created_at": firestore.SERVER_TIMESTAMP,
     "source": "summarizer"
 })
-
+summary_output1=st.session_state.summary_output
 # 3. Store chunks
-store_summary_chunks(summary_doc_ref, summary_text)
+store_summary_chunks(summary_doc_ref,summary_output1 )
 
 # 4. Track active summary
 st.session_state.active_summary_id = summary_doc_ref.id
