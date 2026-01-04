@@ -120,7 +120,7 @@ if st.button("Generate Report ", use_container_width=True):
 word_doc_ref = word_col.document()  # auto docId
 
 word_doc_ref.set({
-    "title": shorten_title(prompt),
+    "title": shorten_title(topic),
     "created_at": firestore.SERVER_TIMESTAMP,
     "source": "word_generator"
 })
