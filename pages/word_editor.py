@@ -98,24 +98,40 @@ st.write("Refine and export your research into polished Microsoft Word documents
 
 topic = st.text_input("Report Topic", placeholder="e.g., The impact of renewable energy on global economy")
 
-if st.button("Generate Report ", use_container_width=True):
+if st.button("Generate Report", use_container_width=True):
     if topic:
         with st.spinner("AI Mentor is drafting your report..."):
             try:
-                prompt = f"Write a comprehensive formal academic report about: {topic}. Use ## for section headings."
+                prompt = (
+                    f"Write a comprehensive formal academic report about: {topic}. "
+                    "Use ## for section headings."
+                )
+
                 response = client.models.generate_content(
                     model="gemini-2.5-flash-lite",
                     contents=[prompt],
                     config=genai.types.GenerateContentConfig(
-                        system_instruction="You are a professional academic mentor. Write formal, well-structured reports. Do not use markdown bolding (**) in titles or headers."
+                        system_instruction=(
+                            "You are a professional academic mentor. "
+                            "Write formal, well-structured reports. "
+                            "Do not use markdown bolding (**) in titles or headers."
+                        )
                     )
                 )
-                st.session_state.report_text = response.text
+
+                # ✅ ALWAYS EXTRACT FIRST
+                generated_text = response.text
+
+                # ✅ STORE IN SESSION (NOT response DIRECTLY)
+                st.session_state.report_text = generated_text
+
                 st.success("Draft completed!")
+
             except Exception as e:
                 st.error(f"Generation failed: {e}")
     else:
         st.warning("Please enter a topic to begin.")
+
 
 word_doc_ref = word_col.document()  # auto docId
 
@@ -137,8 +153,10 @@ def store_word_chunks(word_doc_ref, full_text):
             "text": p,
             "embedding": []  # placeholder for future RAG
         })
-st.session_state.report_text = response.text
-store_word_chunks(word_doc_ref, st.session_state.report_text)
+generated_text = response.text
+st.session_state.report_text = generated_text
+
+store_word_chunks(word_doc_ref,generated_text )
 
 st.session_state.active_word_id = word_doc_ref.id
 
