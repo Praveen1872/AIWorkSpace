@@ -4,6 +4,7 @@ from google import genai
 import PyPDF2
 from docx import Document
 from pptx import Presentation
+
 st.markdown("""
 <style>
     /* 1. Global App & Font Polish */

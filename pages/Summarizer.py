@@ -4,6 +4,9 @@ from google import genai
 import PyPDF2
 from docx import Document
 from pptx import Presentation
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4
 
 # -------------------- Page Config --------------------
 st.set_page_config(
@@ -40,6 +43,33 @@ hr {
 </style>
 """, unsafe_allow_html=True)
 
+
+is_logged_in = st.session_state.get('logged_in', False)
+if not is_logged_in:
+    st.switch_page("pages/login.py")
+
+
+h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
+with h_cols[0]: 
+    st.markdown("<h3 style='margin:0;'>🚀 AI Mentor</h3>", unsafe_allow_html=True)
+
+with h_cols[1]: 
+    if st.button("PPT 🖼️", use_container_width=True): st.switch_page("pages/ppt_editor.py")
+with h_cols[2]: 
+    if st.button("Word 📝", use_container_width=True): st.switch_page("pages/word_editor.py")
+with h_cols[3]: 
+    
+    if st.button("Notes 📓", use_container_width=True): st.switch_page("pages/note.py")
+with h_cols[4]: 
+    
+    if st.button("Summarizer📝", use_container_width=True): st.switch_page("pages/Summarizer.py")
+
+with h_cols[6]:
+    if st.button("Logout 🚪", use_container_width=True):
+        st.session_state.logged_in = False
+        st.switch_page("AIMentor.py")
+
+st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", unsafe_allow_html=True)
 # -------------------- Session State Init --------------------
 if "active_context" not in st.session_state:
     st.session_state.active_context = ""
@@ -93,10 +123,22 @@ def call_research_ai(prompt, context):
     )
     return response.text
 
-# -------------------- Layout --------------------
+def generate_summary_pdf(summary_text):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    story = []
+
+    for line in summary_text.split("\n"):
+        story.append(Paragraph(line, styles["Normal"]))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
 col_left, col_right = st.columns([2, 1], gap="large")
 
-# ==================== LEFT: SUMMARIZER ====================
+
 with col_left:
     st.title("📑 Summarizer Lab")
 
@@ -130,6 +172,27 @@ with col_left:
         with st.container(border=True):
             st.markdown("### 📄 Summary")
             st.markdown(st.session_state.summary_output)
+
+        pdf_buffer = generate_summary_pdf(st.session_state.summary_output)
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+            st.download_button(
+                label="📥 Download PDF",
+                data=pdf_buffer,
+                file_name="summary.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+
+        with c2:
+            if st.button("🧹 Clear Summary", use_container_width=True):
+                st.session_state.summary_output = ""
+                st.session_state.active_context = ""
+                st.session_state.active_filename = ""
+                st.session_state.assistant_chat = []
+                st.rerun()
 
 # ==================== RIGHT: AI ASSISTANT ====================
 with col_right:
