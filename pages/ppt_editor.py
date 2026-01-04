@@ -180,8 +180,9 @@ def store_ppt_chunks(ppt_doc_ref, slides):
         text = s.get("title", "") + " " + " ".join(s.get("points", []))
         chunks_col.add({
             "text": text.strip(),
-            "embedding": []  # placeholder for future RAG
+            "embedding": []
         })
+
 
 def load_user_ppts():
     docs = ppt_col.order_by(
@@ -300,31 +301,49 @@ with col_chat:
     ppt_prompt = st.chat_input("Enter PPT topic")
 
 
-    if user_in := ppt_prompt:
-        st.session_state.chat_history.append({"role": "user", "content": user_in})
-        with st.spinner("Architecting ..."):
-            idx = st.session_state.current_slide_idx if (edit_mode and "ppt_data" in st.session_state) else None
-            new_slides, advice, model_name = call_ai_architect(user_in, st.session_state.get("ppt_data"), idx)
-            if new_slides:
-                st.session_state.ppt_data = new_slides
-                st.session_state.chat_history.append({
-                    "role": "assistant", 
-                    "content": f"Done", 
-                    "advice": advice
-                })
-                ppt_doc_ref = ppt_col.document()  # auto docId
-                ppt_doc_ref.set({
-    "title": ppt_prompt,              # first user prompt
-    "created_at": firestore.SERVER_TIMESTAMP,
-    "source": "ppt_generator"
-})
-
-                store_ppt_chunks(ppt_doc_ref, new_slides)
-                st.session_state.active_ppt_id = ppt_doc_ref.id
-
-                st.rerun()
-for slide in st.session_state.ppt_data:
-    ppt_doc_ref.collection("chunks").add({
-        "text": f"{slide['title']} - " + " ".join(slide["points"]),
-        "embedding": []  # keep empty for now
+if user_in := ppt_prompt:
+    # Store chat
+    st.session_state.chat_history.append({
+        "role": "user",
+        "content": user_in
     })
+
+    with st.spinner("Architecting ..."):
+        idx = (
+            st.session_state.current_slide_idx
+            if (edit_mode and "ppt_data" in st.session_state)
+            else None
+        )
+
+        new_slides, advice, model_name = call_ai_architect(
+            user_in,
+            st.session_state.get("ppt_data"),
+            idx
+        )
+
+        if new_slides:
+            # Update session PPT data
+            st.session_state.ppt_data = new_slides
+
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": "Done",
+                "advice": advice
+            })
+
+            # ✅ CREATE ONE PPT DOCUMENT (CORRECT PLACE)
+            ppt_doc_ref = ppt_col.document()   # auto docId
+
+            ppt_doc_ref.set({
+                "title": user_in,   # FIRST USER PROMPT AS TITLE
+                "created_at": firestore.SERVER_TIMESTAMP,
+                "source": "ppt_generator"
+            })
+
+            # ✅ STORE SLIDE CHUNKS (ONLY ONCE)
+            store_ppt_chunks(ppt_doc_ref, new_slides)
+
+            # Track active PPT
+            st.session_state.active_ppt_id = ppt_doc_ref.id
+
+            st.rerun()
