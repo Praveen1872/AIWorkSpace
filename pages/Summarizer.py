@@ -203,9 +203,4 @@ with col_right:
                 st.session_state.active_filename = ""
                 st.session_state.research_chat_history = []
                 st.rerun()
-chat_container = st.container(height=450)
 
-with chat_container:
-    for message in st.session_state.research_chat_history:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
