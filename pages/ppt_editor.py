@@ -12,84 +12,84 @@ from pptx.dml.color import RGBColor
 
 
 st.set_page_config(page_title="Slide Architect Pro", layout="wide")
-st.markdown("""
-<style>
-    .stApp { 
-        background-color: #FAF8F7; 
-        color: #1A1A1A; 
-        font-family: 'Inter', sans-serif;
-    }
+# st.markdown("""
+# <style>
+#     .stApp { 
+#         background-color: #FAF8F7; 
+#         color: #1A1A1A; 
+#         font-family: 'Inter', sans-serif;
+#     }
 
-    .slide-stage {
-        width: 700px;
-        height: 500px;
-        background-color: #FFFFFF;
-        margin: 20px auto;
-        padding: 50px;
-        border-radius: 8px;
-        border: 1px solid #E0DEDD;
-        box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.08);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        position: relative;
-    }
-.slide-stage {
-        background-color: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 40px;
+#     .slide-stage {
+#         width: 700px;
+#         height: 500px;
+#         background-color: #FFFFFF;
+#         margin: 20px auto;
+#         padding: 50px;
+#         border-radius: 8px;
+#         border: 1px solid #E0DEDD;
+#         box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.08);
+#         display: flex;
+#         flex-direction: column;
+#         overflow: hidden;
+#         position: relative;
+#     }
+# .slide-stage {
+#         background-color: #ffffff;
+#         border: 1px solid #e2e8f0;
+#         border-radius: 12px;
+#         padding: 40px;
        
-        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    .slide-title {
-        font-size: 42px;
-        font-weight: 800;
-        color: #FF4520;
-        margin-bottom: 25px;
-        line-height: 1.2;
-    }
+#         box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+#         margin-bottom: 20px;
+#     }
+#     .slide-title {
+#         font-size: 42px;
+#         font-weight: 800;
+#         color: #FF4520;
+#         margin-bottom: 25px;
+#         line-height: 1.2;
+#     }
 
-    .slide-content {
-        font-size: 26px;
-        line-height: 1.6;
-        color: #2D2D2D;
-        flex-grow: 1;
-    }
+#     .slide-content {
+#         font-size: 26px;
+#         line-height: 1.6;
+#         color: #2D2D2D;
+#         flex-grow: 1;
+#     }
 
-    .slide-point {
-        margin-bottom: 20px;
-        padding-left: 10px;
-    }
+#     .slide-point {
+#         margin-bottom: 20px;
+#         padding-left: 10px;
+#     }
 
-    div.stButton > button { 
-        border-radius: 12px; 
-        background-color: white; 
-        color: black;
-        border: 1px solid #E0DEDD;
-        height: 3.2em;
-        width: 100%;
-        font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+#     div.stButton > button { 
+#         border-radius: 12px; 
+#         background-color: white; 
+#         color: black;
+#         border: 1px solid #E0DEDD;
+#         height: 3.2em;
+#         width: 100%;
+#         font-weight: 600;
+#         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+#     }
 
-    div.stButton > button:hover {
-        background-color: #FF4520;
-        color: white !important;
-        transform: translateY(-2px);
-        box-shadow: 0px 6px 15px rgba(255, 69, 32, 0.3);
-        border-color: #FF4520;
-    }
+#     div.stButton > button:hover {
+#         background-color: #FF4520;
+#         color: white !important;
+#         transform: translateY(-2px);
+#         box-shadow: 0px 6px 15px rgba(255, 69, 32, 0.3);
+#         border-color: #FF4520;
+#     }
 
-    [data-testid="column"] {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0px 5px !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+#     [data-testid="column"] {
+#         display: flex;
+#         align-items: center;
+#         justify-content: center;
+#         padding: 0px 5px !important;
+#     }
+# </style>
+# """, unsafe_allow_html=True)
 
 
 is_logged_in = st.session_state.get('logged_in', False)

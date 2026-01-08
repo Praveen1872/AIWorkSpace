@@ -11,29 +11,29 @@ st.set_page_config(
 )
 
 # ------------------ STYLING ------------------
-st.markdown("""
-<style>
-.stApp { background-color: #FAF8F7; }
-[data-testid="stVerticalBlock"] > div:nth-child(2) {
-    background-color: white;
-    padding: 40px;
-    border-radius: 25px;
-    border: 1px solid #E0DEDD;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.03);
-}
-.title-text { text-align: center; font-weight: 800; font-size: 2.2rem; }
-.subtitle-text { text-align: center; color: #666; margin-bottom: 30px; }
-div.stButton > button {
-    width: 100%;
-    border-radius: 50px;
-    height: 3.5em;
-    background-color: #1A1A1A;
-    color: white;
-    border: none;
-    font-weight: 600;
-}
-</style>
-""", unsafe_allow_html=True)
+# st.markdown("""
+# <style>
+# .stApp { background-color: #FAF8F7; }
+# [data-testid="stVerticalBlock"] > div:nth-child(2) {
+#     background-color: white;
+#     padding: 40px;
+#     border-radius: 25px;
+#     border: 1px solid #E0DEDD;
+#     box-shadow: 0px 4px 20px rgba(0,0,0,0.03);
+# }
+# .title-text { text-align: center; font-weight: 800; font-size: 2.2rem; }
+# .subtitle-text { text-align: center; color: #666; margin-bottom: 30px; }
+# div.stButton > button {
+#     width: 100%;
+#     border-radius: 50px;
+#     height: 3.5em;
+#     background-color: #1A1A1A;
+#     color: white;
+#     border: none;
+#     font-weight: 600;
+# }
+# </style>
+# """, unsafe_allow_html=True)
 
 # ------------------ FIREBASE INIT ------------------
 def initialize_firebase():

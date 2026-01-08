@@ -17,40 +17,40 @@ st.set_page_config(
 )
 
 
-st.markdown("""
-<style>
-.stApp {
-    background-color: #FAF8F7;
-    color: #1A1A1A;
-    font-family: 'Inter', sans-serif;
-}
-div.stButton > button {
-    border-radius: 12px;
-    background-color: white;
-    color: black;
-    border: none;
-    height: 3.2em;
-    width: 80%;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-div.stButton > button:hover {
-    background-color: #FF4520;
-    color: white !important;
-}
-hr {
-    border-top: 1px solid #E0DEDD;
-}
-    .summary-scroll {
-    max-height: 420px;
-    overflow-y: auto;
-    padding: 15px;
-    background-color: #FFFFFF;
-    border-radius: 10px;
-    border: 1px solid #E0DEDD;
-}
-</style>
-""", unsafe_allow_html=True)
+# st.markdown("""
+# <style>
+# .stApp {
+#     background-color: #FAF8F7;
+#     color: #1A1A1A;
+#     font-family: 'Inter', sans-serif;
+# }
+# div.stButton > button {
+#     border-radius: 12px;
+#     background-color: white;
+#     color: black;
+#     border: none;
+#     height: 3.2em;
+#     width: 80%;
+#     font-weight: 600;
+#     transition: all 0.3s ease;
+# }
+# div.stButton > button:hover {
+#     background-color: #FF4520;
+#     color: white !important;
+# }
+# hr {
+#     border-top: 1px solid #E0DEDD;
+# }
+#     .summary-scroll {
+#     max-height: 420px;
+#     overflow-y: auto;
+#     padding: 15px;
+#     background-color: #FFFFFF;
+#     border-radius: 10px;
+#     border: 1px solid #E0DEDD;
+# }
+# </style>
+# """, unsafe_allow_html=True)
 
 
 is_logged_in = st.session_state.get('logged_in', False)

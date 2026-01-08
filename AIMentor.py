@@ -40,63 +40,63 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 st.set_page_config(page_title="AI Professional Workspace", layout="wide")
-st.markdown("""
-<style>
-    /* 1. Global App & Font Polish */
-    .stApp { 
-        background-color: #FAF8F7; 
-        color: #1A1A1A; 
-        font-family: 'Inter', sans-serif;
-    }
+# st.markdown("""
+# <style>
+#     /* 1. Global App & Font Polish */
+#     .stApp { 
+#         background-color: #FAF8F7; 
+#         color: #1A1A1A; 
+#         font-family: 'Inter', sans-serif;
+#     }
 
-    /* 2. Column Alignment Logic */
-    [data-testid="column"] {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0px 5px !important; /* Tightens the gap between buttons */
-    }
+#     /* 2. Column Alignment Logic */
+#     [data-testid="column"] {
+#         display: flex;
+#         align-items: center;
+#         justify-content: center;
+#         padding: 0px 5px !important; /* Tightens the gap between buttons */
+#     }
 
-    /* 3. Button Design (Orange Professional Theme) */
-    div.stButton > button { 
-        border-radius: 12px; 
-        background-color: #FF6042; 
-        color: white;
-        border: none;
-        height: 3.2em; /* Slightly taller for better touch/click experience */
-        width: 112%;
-        font-weight: 600;
-        letter-spacing: 0.3px;
-        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05); /* Subtle depth */
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        justify-content: flex-end; /* aligns buttons to the right */
-        gap: 10px;
-        margin-right: 30px;
-        margin-top: -50px; /* adjust vertical alignment if needed */
-    }
+#     /* 3. Button Design (Orange Professional Theme) */
+#     div.stButton > button { 
+#         border-radius: 12px; 
+#         background-color: #FF6042; 
+#         color: white;
+#         border: none;
+#         height: 3.2em; /* Slightly taller for better touch/click experience */
+#         width: 112%;
+#         font-weight: 600;
+#         letter-spacing: 0.3px;
+#         box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05); /* Subtle depth */
+#         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+#         justify-content: flex-end; /* aligns buttons to the right */
+#         gap: 10px;
+#         margin-right: 30px;
+#         margin-top: -50px; /* adjust vertical alignment if needed */
+#     }
 
-    /* 4. Interactive Hover & Active States */
-    div.stButton > button:hover {
-        background-color: #FF4520;
-        color: white !important;
-        transform: translateY(-2px); /* Lift effect */
-        box-shadow: 0px 6px 15px rgba(255, 96, 66, 0.3); /* Glowing shadow */
-    }
+#     /* 4. Interactive Hover & Active States */
+#     div.stButton > button:hover {
+#         background-color: #FF4520;
+#         color: white !important;
+#         transform: translateY(-2px); /* Lift effect */
+#         box-shadow: 0px 6px 15px rgba(255, 96, 66, 0.3); /* Glowing shadow */
+#     }
 
-    div.stButton > button:active {
-        transform: translateY(0px); /* Pressed effect */
-        box-shadow: 0px 2px 4px rgba(255, 96, 66, 0.2);
-    }
+#     div.stButton > button:active {
+#         transform: translateY(0px); /* Pressed effect */
+#         box-shadow: 0px 2px 4px rgba(255, 96, 66, 0.2);
+#     }
 
-    /* 5. Custom Horizontal Rule */
-    hr {
-        margin-top: 1rem;
-        margin-bottom: 2rem;
-        border: 0;
-        border-top: 1px solid #E0DEDD;
-    }
-</style>
-""", unsafe_allow_html=True)
+#     /* 5. Custom Horizontal Rule */
+#     hr {
+#         margin-top: 1rem;
+#         margin-bottom: 2rem;
+#         border: 0;
+#         border-top: 1px solid #E0DEDD;
+#     }
+# </style>
+# """, unsafe_allow_html=True)
 
 # --- 3. HELPER FUNCTIONS ---
 def export_last_chat_to_pdf(user_text, ai_text):

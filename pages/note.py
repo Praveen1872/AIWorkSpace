@@ -45,26 +45,26 @@ st.markdown(
 )
 
 # --- STYLING ---
-st.markdown("""
-<style>
-div[data-baseweb="input"],
-div[data-baseweb="textarea"] {
-    background: transparent !important;
-    box-shadow: none !important;
-    border: none !important;
-}
+# st.markdown("""
+# <style>
+# div[data-baseweb="input"],
+# div[data-baseweb="textarea"] {
+#     background: transparent !important;
+#     box-shadow: none !important;
+#     border: none !important;
+# }
 
-input, textarea {
-    border: none !important;
-    box-shadow: none !important;
-}
+# input, textarea {
+#     border: none !important;
+#     box-shadow: none !important;
+# }
 
-input {
-    border-bottom: 1px solid #ddd !important;
-    border-radius: 0 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+# input {
+#     border-bottom: 1px solid #ddd !important;
+#     border-radius: 0 !important;
+# }
+# </style>
+# """, unsafe_allow_html=True)
 
 # --- MAIN CONTENT ---
 st.title("📓 Research Notebook")
