@@ -8,7 +8,7 @@ from google import genai
 from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
-prs = None
+
 
 
 st.set_page_config(page_title="Slide Architect Pro", layout="wide")
@@ -303,6 +303,8 @@ with st.sidebar:
             doc.reference.delete()
         st.session_state.pop("ppt_data", None)
         st.rerun()
+
+
 if (
     "active_ppt_id" in st.session_state
     and "ppt_data" not in st.session_state
@@ -320,6 +322,11 @@ if (
 
     if slides:
         st.session_state.ppt_data = slides
+
+# 🛑 Guard: only stop slide rendering if no slides exist
+if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
+    st.info("👋 Ask the Assistant to generate slides")
+    st.stop()
 
 
 # -------------------------------
@@ -342,9 +349,7 @@ if "current_slide_idx" in st.session_state:
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
 with col_stage:
     st.title("🖼️ Slides Editor")
-    if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
-        st.info("👋 Ask the Assistant to generate slides")
-        st.stop()
+   
  
 style = st.session_state.slide_styles.get(
     st.session_state.current_slide_idx,
@@ -433,9 +438,6 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
     unsafe_allow_html=True
 )
         
-
-        
-
         
         st.write("### 🎞️ Slide Navigator")
         nav_cols = st.columns(min(len(data), 10))
@@ -463,6 +465,7 @@ with c1:
         st.rerun()
 
 # ---------------- EXPORT PPT ----------------
+# ---------------- EXPORT PPT ----------------
 with c2:
     if st.button("📥 Download PPTX", use_container_width=True):
 
@@ -470,38 +473,33 @@ with c2:
         prs.slide_width = 9144000
         prs.slide_height = 6858000
 
-        for i, s in enumerate(st.session_state.ppt_data):
-
+        for s in st.session_state.ppt_data:
             slide = prs.slides.add_slide(prs.slide_layouts[1])
 
             # TITLE
-           
             title_shape = slide.shapes.title
-title_shape.text = clean_text(s.get("title", ""))
+            title_shape.text = clean_text(s.get("title", ""))
 
-style = s.get("style", {})
+            style = s.get("style", {})
 
-for paragraph in title_shape.text_frame.paragraphs:
-    for run in paragraph.runs:
-        run.font.name = style.get("font", "Arial")
-        run.font.size = Pt(style.get("size", 42))
-        run.font.bold = style.get("weight", 800) >= 700
+            for p in title_shape.text_frame.paragraphs:
+                for run in p.runs:
+                    run.font.name = style.get("font", "Arial")
+                    run.font.size = Pt(style.get("size", 42))
+                    run.font.bold = style.get("weight", 800) >= 700
 
-        hex_color = style.get("color", "#000000").lstrip("#")
-        if len(hex_color) == 6:
-            run.font.color.rgb = RGBColor(
-                int(hex_color[0:2], 16),
-                int(hex_color[2:4], 16),
-                int(hex_color[4:6], 16),
-            )
-
+                    hex_color = style.get("color", "#000000").lstrip("#")
+                    if len(hex_color) == 6:
+                        run.font.color.rgb = RGBColor(
+                            int(hex_color[0:2], 16),
+                            int(hex_color[2:4], 16),
+                            int(hex_color[4:6], 16),
+                        )
 
             # CONTENT
-            slide_points = s.get("points", [])[:7]
-            combined_text = "\n".join(clean_text(p) for p in slide_points)
-
+            points = s.get("points", [])[:7]
             if len(slide.placeholders) > 1:
-                slide.placeholders[1].text = combined_text
+                slide.placeholders[1].text = "\n".join(clean_text(p) for p in points)
 
         buf = io.BytesIO()
         prs.save(buf)
@@ -513,6 +511,7 @@ for paragraph in title_shape.text_frame.paragraphs:
             mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             use_container_width=True,
         )
+
 
 with col_chat:
     st.title("AI Assistant")
