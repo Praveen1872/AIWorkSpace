@@ -7,3 +7,19 @@ python-pptx
 python-docx
 PyPDF2
 reportlab
+streamlit
+firebase-admin
+google-genai
+
+# Document generation
+fpdf
+reportlab
+python-pptx
+python-docx
+PyPDF2
+pillow
+
+# RAG + Memory
+langchain
+langchain-google-genai
+langchain-community

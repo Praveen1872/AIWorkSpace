@@ -8,6 +8,8 @@ import PIL.Image
 import io
 import os
 import streamlit.components.v1 as components
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 st.set_page_config(page_title="AI Workspace", layout="wide")
 def initialize_firebase():
@@ -219,15 +221,21 @@ memory_ref = (
 )
 
 memory_doc = memory_ref.get()
+long_term_memory = (
+    memory_doc.to_dict().get("long_term_summary", "")
+    if memory_doc.exists
+    else ""
+)
 
-if memory_doc.exists:
-    long_term_memory = memory_doc.to_dict().get("long_term_summary", "")
-else:
-    long_term_memory = ""
 
 def update_long_term_memory(chats_col, memory_ref):
-    docs = chats_col.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(10).stream()
-    
+    docs = (
+        chats_col
+        .order_by("timestamp", direction=firestore.Query.DESCENDING)
+        .limit(10)
+        .stream()
+    )
+
     recent_chats = []
     for doc in docs:
         d = doc.to_dict()
@@ -236,8 +244,10 @@ def update_long_term_memory(chats_col, memory_ref):
     recent_chats.reverse()
     chat_text = "\n".join(recent_chats)
 
-    memory_doc = memory_ref.get()
-    old_memory = memory_doc.to_dict().get("long_term_summary", "")
+    old_memory = ""
+    old_doc = memory_ref.get()
+    if old_doc.exists:
+        old_memory = old_doc.to_dict().get("long_term_summary", "")
 
     prompt = f"""
 You are an AI memory summarizer.
@@ -248,7 +258,7 @@ Existing memory:
 Recent conversation:
 {chat_text}
 
-Update the memory with:
+Update memory with:
 - User goals
 - Repeated topics
 - Preferences
@@ -266,18 +276,51 @@ Keep it concise (5–7 lines).
         "long_term_summary": response.text,
         "updated_at": firestore.SERVER_TIMESTAMP
     })
-if "messages" in st.session_state and len(st.session_state.messages) > 0:
-    if len(st.session_state.messages) % 4 == 0:
+
+if "messages" in st.session_state:
+    if len(st.session_state.messages) > 0 and len(st.session_state.messages) % 4 == 0:
         update_long_term_memory(chats_col, memory_ref)
 
 
 
+
 if "messages" not in st.session_state:
-    messages = []
+    msgs = []
     docs = chats_col.order_by("timestamp").stream()
     for doc in docs:
-        messages.append(doc.to_dict())
-    st.session_state.messages = messages
+        msgs.append(doc.to_dict())
+    st.session_state.messages = msgs
+def retrieve_rag_context(question, user_uid, top_k=5):
+    chunks = []
+
+    for dtype in ["ppt", "summary", "word"]:
+        items = (
+            firestore_db
+            .collection("users")
+            .document(user_uid)
+            .collection("documents")
+            .document(dtype)
+            .collection("items")
+            .stream()
+        )
+
+        for item in items:
+            for c in item.reference.collection("chunks").stream():
+                d = c.to_dict()
+                if d.get("text"):
+                    chunks.append(d["text"])
+
+    return "\n".join(chunks[:top_k])
+def web_search_context(query):
+    response = client.models.generate_content(
+        model=MODEL_ID,
+        contents=[f"Search the web and answer factually:\n{query}"],
+        config=types.GenerateContentConfig(
+            tools=[{"google_search": {}}]
+        )
+    )
+    return response.text
+
 
 
 with st.sidebar:
@@ -316,13 +359,12 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
 
 if prompt := st.chat_input(f"Ask your {feature}..."):
 
-    # 1️⃣ Add user message to UI memory
+    # UI + state
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
     })
 
-    # 2️⃣ Store user message in Firestore
     chats_col.add({
         "role": "user",
         "content": prompt,
@@ -332,42 +374,51 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
     with chat_display:
         with st.chat_message("user"):
             st.markdown(prompt)
-            if up_img:
-                st.image(up_img, width=300)
 
     with st.chat_message("assistant"):
-        resp_placeholder = st.empty()
+        with st.spinner("Thinking..."):
 
-        SYSTEM_PROMPT = f"""You are an Elite Academic Mentor AI.
-        User Memory:{long_term_memory}
-        Current Mode: {feature}
-        Response Style: {'Detailed Research' if deep_dive else 'Concise Insight'}Be consistent with the user's past goals and preferences.
+            # 1️⃣ RAG
+            rag_context = retrieve_rag_context(prompt, user_uid)
+
+            # 2️⃣ WEB FALLBACK
+            if not rag_context.strip():
+                rag_context = web_search_context(prompt)
+
+            SYSTEM_PROMPT = f"""
+You are an Elite Academic Mentor AI.
+
+LONG-TERM USER MEMORY:
+{long_term_memory}
+
+RETRIEVED CONTEXT:
+{rag_context}
+
+MODE: {feature}
+STYLE: {"Detailed Research" if deep_dive else "Concise Insight"}
+
+Rules:
+- Use retrieved context first
+- Use memory for personalization
+- If unsure, say so clearly
 """
-
-        try:
-            input_data = [prompt]
-            if up_img:
-                img = PIL.Image.open(up_img)
-                input_data.append(img)
 
             response = client.models.generate_content(
                 model=MODEL_ID,
-                contents=input_data,
+                contents=[prompt],
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT
                 )
             )
 
             final_answer = response.text
-            resp_placeholder.markdown(final_answer)
+            st.markdown(final_answer)
 
-            # 3️⃣ Add assistant message to UI memory
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": final_answer
             })
 
-            # 4️⃣ Store assistant message in Firestore
             chats_col.add({
                 "role": "assistant",
                 "content": final_answer,
@@ -375,6 +426,3 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             })
 
             st.rerun()
-
-        except Exception as e:
-            st.error(f"AI Connection Failed: {e}")
