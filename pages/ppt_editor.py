@@ -305,10 +305,7 @@ with st.sidebar:
         st.rerun()
 
 
-if (
-    "active_ppt_id" in st.session_state
-    and "ppt_data" not in st.session_state
-):
+if "active_ppt_id" in st.session_state:
     ppt_doc = ppt_col.document(st.session_state.active_ppt_id)
     chunks = ppt_doc.collection("chunks").stream()
 
@@ -317,16 +314,24 @@ if (
         data = c.to_dict()
         slides.append({
             "title": data.get("title", ""),
-            "points": data.get("points", [])
+            "points": data.get("points", []),
+            "style": data.get("style", {
+                "font": "Arial",
+                "size": 42,
+                "weight": 800,
+                "color": "#1e293b"
+            })
         })
 
     if slides:
         st.session_state.ppt_data = slides
 
-# 🛑 Guard: only stop slide rendering if no slides exist
+
 if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
-    st.info("👋 Ask the Assistant to generate slides")
-    
+    with col_stage:
+        st.info("👋 Ask the Assistant to generate slides")
+else:
+    pass  # allow rest of UI to render
 
 
 # -------------------------------
