@@ -501,9 +501,11 @@ with col_chat:
     for m in st.session_state.chat_history:
         with chat_box.chat_message(m["role"]):
             st.write(m["content"])
+    
             if "advice" in m:
                 st.markdown(f'<div class="mentor-box">💡 {m["advice"]}</div>', unsafe_allow_html=True)
     st.markdown("### 🎨 AI Title Styling (Active Slide)")
+    ppt_prompt = st.chat_input("Enter PPT topic")
 ai_style_cmd = st.text_input(
     "Describe title style (e.g., modern bold blue)",
     key="ai_title_style"
@@ -522,7 +524,7 @@ if st.button("✨ Apply AI Style"):
     else:
         st.warning("Could not understand style command")
 
-    ppt_prompt = st.chat_input("Enter PPT topic")
+    
 
 if user_in := ppt_prompt:
     # Store user chat
