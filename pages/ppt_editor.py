@@ -5,6 +5,10 @@ from pptx import Presentation
 import io, json, re
 import os 
 from google import genai
+from pptx.util import Pt
+from pptx.enum.text import PP_ALIGN
+from pptx.dml.color import RGBColor
+
 st.set_page_config(page_title="Slide Architect Pro", layout="wide")
 st.markdown("""
 <style>
@@ -119,6 +123,20 @@ def initialize_firebase():
 
 firestore_db = initialize_firebase()
 user_uid = st.session_state.get("user_uid")
+FONT_GROUPS = {
+    "Simple Light": [
+        "Arial", "Inter", "Poppins", "Montserrat", "Roboto"
+    ],
+    "Serif": [
+        "Times New Roman", "Georgia", "EB Garamond"
+    ],
+    "Mono": [
+        "Courier New"
+    ],
+    "Display": [
+        "Impact", "Comic Sans MS"
+    ]
+}
 
 ppt_col = (
     firestore_db
@@ -199,6 +217,43 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
                 return res_json.get('slides'), res_json.get('mentor_advice'), model_name
         except: continue
     return None, None, None
+def ai_style_title(instruction):
+    """
+    Converts natural language into title style JSON
+    """
+    style_prompt = f"""
+You are a slide design assistant.
+
+Convert the instruction below into JSON for a slide title style.
+
+Instruction:
+{instruction}
+
+Rules:
+- Respond ONLY with valid JSON
+- Keys allowed: font, size, weight, color
+- Font must be a common PPT font
+- Size between 24 and 64
+- Weight: 400 (normal) or 800 (bold)
+- Color must be hex
+
+Example output:
+{{"font":"Montserrat","size":48,"weight":800,"color":"#2563eb"}}
+"""
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=[style_prompt]
+        )
+
+        match = re.search(r"\{.*\}", response.text, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+    except:
+        pass
+
+    return None
 
 def store_ppt_chunks(ppt_doc_ref, slides):
     chunks_col = ppt_doc_ref.collection("chunks")
@@ -252,11 +307,65 @@ if "active_ppt_id" in st.session_state:
 
     st.session_state.ppt_data = slides
 
+# -------------------------------
+# Slide Title Style State (PER SLIDE)
+# -------------------------------
+if "slide_styles" not in st.session_state:
+    st.session_state.slide_styles = {}
+
+# Ensure current slide has a style
+if "current_slide_idx" in st.session_state:
+    idx = st.session_state.current_slide_idx
+    if idx not in st.session_state.slide_styles:
+        st.session_state.slide_styles[idx] = {
+            "font": "Arial",
+            "size": 42,
+            "weight": 800,
+            "color": "#1e293b"
+        }
 
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
 with col_stage:
     st.title("🖼️ Slides Editor")
-    
+ 
+style = st.session_state.slide_styles.get(
+    st.session_state.current_slide_idx,
+    {}
+)
+
+with st.expander("🎨 Title Style (Active Slide)", expanded=False):
+    font = st.selectbox(
+        "Font Family",
+        options=sum(FONT_GROUPS.values(), []),
+        index=sum(FONT_GROUPS.values(), []).index(style.get("font", "Arial"))
+    )
+
+    size = st.number_input(
+        "Font Size",
+        min_value=18,
+        max_value=72,
+        value=style.get("size", 42),
+        step=1
+    )
+
+    bold = st.checkbox(
+        "Bold",
+        value=style.get("weight", 800) >= 700
+    )
+
+    color = st.color_picker(
+        "Title Color",
+        value=style.get("color", "#1e293b")
+    )
+
+    # Save style back to session
+    st.session_state.slide_styles[st.session_state.current_slide_idx] = {
+        "font": font,
+        "size": size,
+        "weight": 800 if bold else 500,
+        "color": color
+    }
+
     if "ppt_data" in st.session_state and st.session_state.ppt_data:
         data = st.session_state.ppt_data
         if "current_slide_idx" not in st.session_state or st.session_state.current_slide_idx >= len(data):
@@ -266,15 +375,41 @@ with col_stage:
         title_display = clean_text(active_slide.get('title', 'Untitled Slide'))
         active_points = active_slide.get("points", [])[:7] # Strict 7-point limit
         points_html = "".join([f'<div class="slide-point">• {clean_text(p)}</div>' for p in active_points])
+        style = st.session_state.slide_styles.get(
+            st.session_state.current_slide_idx,
+    {
+        "font": "Arial",
+        "size": 42,
+        "weight": 800,
+        "color": "#1e293b"
+    }
+)
+        st.markdown(
+    f"""
+    <div class="slide-stage">
+        <div style="
+            font-family: {style['font']};
+            font-size: {style['size']}px;
+            font-weight: {style['weight']};
+            color: {style['color']};
+            margin-bottom: 25px;
+            line-height: 1.2;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 10px;
+        ">
+            {title_display}
+        </div>
 
-        st.markdown(f"""
-     <div class="slide-stage">
-        <div class="slide-title">{title_display}</div>
         <div class="content-single">
             {points_html if points_html else '<i>No content for this slide.</i>'}
         </div>
     </div>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
+        
+
+        
 
         
         st.write("### 🎞️ Slide Navigator")
@@ -297,6 +432,34 @@ with col_stage:
            prs.slide_width = 9144000 
            prs.slide_height = 6858000
            for s in st.session_state.ppt_data:
+                slide = prs.slides.add_slide(prs.slide_layouts[1])
+
+                title_shape = slide.shapes.title
+                title_shape.text = clean_text(s.get("title", ""))
+
+# Apply AI / manual title styles if present
+                style = st.session_state.slide_styles.get(i)
+
+                if style:
+                    for paragraph in title_shape.text_frame.paragraphs:
+                        for run in paragraph.runs:
+                         if "font" in style:
+                            run.font.name = style["font"]
+
+                if "size" in style:
+                    run.font.size = Pt(style["size"])
+
+                if "weight" in style:
+                    run.font.bold = style["weight"] >= 700
+
+                if "color" in style:
+                    hex_color = style["color"].lstrip("#")
+                run.font.color.rgb = RGBColor(
+                    int(hex_color[0:2], 16),
+                    int(hex_color[2:4], 16),
+                    int(hex_color[4:6], 16)
+                )
+
                 slide = prs.slides.add_slide(prs.slide_layouts[1]) 
                 slide.shapes.title.text = clean_text(s.get('title', ''))
     
@@ -334,6 +497,25 @@ with col_chat:
             st.write(m["content"])
             if "advice" in m:
                 st.markdown(f'<div class="mentor-box">💡 {m["advice"]}</div>', unsafe_allow_html=True)
+    st.markdown("### 🎨 AI Title Styling (Active Slide)")
+ai_style_cmd = st.text_input(
+    "Describe title style (e.g., modern bold blue)",
+    key="ai_title_style"
+)
+
+if st.button("✨ Apply AI Style"):
+    style_update = ai_style_title(ai_style_cmd)
+
+    if style_update:
+        st.session_state.slide_styles[
+            st.session_state.current_slide_idx
+        ].update(style_update)
+
+        st.success("Title style updated")
+        st.rerun()
+    else:
+        st.warning("Could not understand style command")
+
     ppt_prompt = st.chat_input("Enter PPT topic")
 
 if user_in := ppt_prompt:
@@ -366,9 +548,7 @@ if user_in := ppt_prompt:
                 "advice": advice
             })
 
-            # -------------------------------
-            # 🔹 CREATE or REUSE PPT DOCUMENT
-            # -------------------------------
+       
             if edit_mode and "active_ppt_id" in st.session_state:
                 ppt_doc_ref = ppt_col.document(st.session_state.active_ppt_id)
 
@@ -384,9 +564,7 @@ if user_in := ppt_prompt:
                 })
                 st.session_state.active_ppt_id = ppt_doc_ref.id
 
-            # -------------------------------
-            # 🔹 STORE UPDATED CHUNKS
-            # -------------------------------
+           
             store_ppt_chunks(ppt_doc_ref, new_slides)
 
             st.rerun()
