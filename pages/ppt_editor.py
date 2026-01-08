@@ -347,11 +347,22 @@ if "current_slide_idx" in st.session_state:
             "color": "#1e293b"
         }
 
+
+# ===============================
+# SLIDES EDITOR
+# ===============================
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
+
 with col_stage:
-     if "ppt_data" in st.session_state and st.session_state.ppt_data:
+    st.title("🖼️ Slides Editor")
+
+    # ---------- Guard ----------
+    if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
+        st.info("👋 Ask the Assistant to generate slides")
+    else:
         data = st.session_state.ppt_data
 
+        # ---------- Index safety ----------
         if "current_slide_idx" not in st.session_state:
             st.session_state.current_slide_idx = 0
 
@@ -359,104 +370,100 @@ with col_stage:
             st.session_state.current_slide_idx = 0
 
         active_slide = data[st.session_state.current_slide_idx]
-    
-     st.title("🖼️ Slides Editor")
-   
- 
-style = st.session_state.slide_styles.get(
-    st.session_state.current_slide_idx,
-    {}
-)
 
-with st.expander("🎨 Title Style (Active Slide)", expanded=False):
-    font = st.selectbox(
-        "Font Family",
-        options=sum(FONT_GROUPS.values(), []),
-        index=sum(FONT_GROUPS.values(), []).index(style.get("font", "Arial"))
-    )
+        # ---------- Ensure style exists ----------
+        if "slide_styles" not in st.session_state:
+            st.session_state.slide_styles = {}
 
-    size = st.number_input(
-        "Font Size",
-        min_value=18,
-        max_value=72,
-        value=style.get("size", 42),
-        step=1
-    )
+        if st.session_state.current_slide_idx not in st.session_state.slide_styles:
+            st.session_state.slide_styles[st.session_state.current_slide_idx] = {
+                "font": "Arial",
+                "size": 42,
+                "weight": 800,
+                "color": "#1e293b"
+            }
 
-    bold = st.checkbox(
-        "Bold",
-        value=style.get("weight", 800) >= 700
-    )
+        style = st.session_state.slide_styles[st.session_state.current_slide_idx]
 
-    color = st.color_picker(
-        "Title Color",
-        value=style.get("color", "#1e293b")
-    )
+        # ---------- STYLE CONTROLS ----------
+        with st.expander("🎨 Title Style (Active Slide)", expanded=False):
+            font = st.selectbox(
+                "Font Family",
+                options=sum(FONT_GROUPS.values(), []),
+                index=sum(FONT_GROUPS.values(), []).index(style["font"])
+            )
 
-    # Save style back to session
-    st.session_state.slide_styles[st.session_state.current_slide_idx] = {
-        "font": font,
-        "size": size,
-        "weight": 800 if bold else 500,
-        "color": color
-    }
+            size = st.number_input(
+                "Font Size",
+                min_value=18,
+                max_value=72,
+                value=style["size"],
+                step=1
+            )
 
-    if "ppt_data" in st.session_state and st.session_state.ppt_data:
-        data = st.session_state.ppt_data
-        if "current_slide_idx" not in st.session_state or st.session_state.current_slide_idx >= len(data):
-            st.session_state.current_slide_idx = 0
-            
-        active_slide = data[st.session_state.current_slide_idx]
+            bold = st.checkbox(
+                "Bold",
+                value=style["weight"] >= 700
+            )
 
+            color = st.color_picker(
+                "Title Color",
+                value=style["color"]
+            )
 
-        style = active_slide.get("style") or {}
-        active_slide["style"] = style
+            st.session_state.slide_styles[st.session_state.current_slide_idx] = {
+                "font": font,
+                "size": size,
+                "weight": 800 if bold else 500,
+                "color": color
+            }
 
+            style = st.session_state.slide_styles[st.session_state.current_slide_idx]
 
+        # ---------- SLIDE RENDER ----------
+        title_display = clean_text(active_slide.get("title", "Untitled Slide"))
+        points = active_slide.get("points", [])[:7]
 
-        title_display = clean_text(active_slide.get('title', 'Untitled Slide'))
-        active_points = active_slide.get("points", [])[:7] # Strict 7-point limit
-        points_html = "".join([f'<div class="slide-point">• {clean_text(p)}</div>' for p in active_points])
-        style = st.session_state.slide_styles.get(
-            st.session_state.current_slide_idx,
-    {
-        "font": "Arial",
-        "size": 42,
-        "weight": 800,
-        "color": "#1e293b"
-    }
-)
+        points_html = "".join(
+            f"<div class='slide-point'>• {clean_text(p)}</div>"
+            for p in points
+        )
+
         st.markdown(
-    f"""
-    <div class="slide-stage">
-        <div style="
-            font-family: {style['font']};
-            font-size: {style['size']}px;
-            font-weight: {style['weight']};
-            color: {style['color']};
-            margin-bottom: 25px;
-            line-height: 1.2;
-            border-bottom: 3px solid #3b82f6;
-            padding-bottom: 10px;
-        ">
-            {title_display}
-        </div>
+            f"""
+            <div class="slide-stage">
+                <div style="
+                    font-family:{style['font']};
+                    font-size:{style['size']}px;
+                    font-weight:{style['weight']};
+                    color:{style['color']};
+                    margin-bottom:25px;
+                    line-height:1.2;
+                    border-bottom:3px solid #3b82f6;
+                    padding-bottom:10px;
+                ">
+                    {title_display}
+                </div>
 
-        <div class="content-single">
-            {points_html if points_html else '<i>No content for this slide.</i>'}
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-        
-        
+                <div class="content-single">
+                    {points_html if points_html else "<i>No content</i>"}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # ---------- NAVIGATOR ----------
         st.write("### 🎞️ Slide Navigator")
         nav_cols = st.columns(min(len(data), 10))
+
         for i in range(len(data)):
             with nav_cols[i % 10]:
-                is_active = (i == st.session_state.current_slide_idx)
-                if st.button(f"{i+1}", key=f"nav_{i}", type="primary" if is_active else "secondary"):
+                if st.button(
+                    str(i + 1),
+                    key=f"nav_{i}",
+                    type="primary" if i == st.session_state.current_slide_idx else "secondary"
+                ):
                     st.session_state.current_slide_idx = i
                     st.rerun()
 
