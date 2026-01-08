@@ -417,24 +417,21 @@ RULES:
 - NEVER mention system limitations, browsing limits, or training data
 """
 
-            # 5️⃣ MULTIMODAL INPUT (TEXT + IMAGE)
-            input_parts = [prompt]
+           
 
+            input_parts = [prompt]
             if up_img:
                 img = Image.open(up_img)
-                input_parts.append(
-                    types.Part.from_image(img)
-                )
+                input_parts.append(img)   # ✅ DIRECT IMAGE, NO Part, NO types
 
-            # 6️⃣ GEMINI CALL
+
             response = client.models.generate_content(
-                model=MODEL_ID,
-                contents=input_parts,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
-                    temperature=0.2
-                )
-            )
+    model=MODEL_ID,
+    contents=input_parts,
+    config=types.GenerateContentConfig(
+        system_instruction=SYSTEM_PROMPT
+    )
+)
 
             final_answer = response.text
             st.markdown(final_answer)
