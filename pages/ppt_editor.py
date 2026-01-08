@@ -459,8 +459,14 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
                          if "font" in style:
                             run.font.name = style["font"]
 
-                if "size" in style:
-                    run.font.size = Pt(style["size"])
+                # 🔒 HARD SAFETY (FINAL)
+                style = active_slide.get("style")
+                st.write("DEBUG style value:", style, type(style))
+
+                if style is None or not isinstance(style, dict):
+                    style = {}
+                    active_slide["style"] = style
+
 
                 if "weight" in style:
                     run.font.bold = style["weight"] >= 700
