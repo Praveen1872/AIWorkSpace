@@ -133,9 +133,9 @@ if "summary_output" not in st.session_state:
 
 if "assistant_chat" not in st.session_state:
     st.session_state.assistant_chat = []
-
+import os
 # -------------------- AI Client --------------------
-client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+client = genai.Client(API_KEY = os.getenv("GEMINI_API_KEY"))
 
 # -------------------- Helpers --------------------
 def extract_text_from_any(uploaded_file):

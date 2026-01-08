@@ -7,7 +7,7 @@ from fpdf import FPDF
 import PIL.Image
 import io
 import os
-API_KEY = st.secrets["GEMINI_API_KEY"]
+
 
 def initialize_firebase():
     if not firebase_admin._apps:

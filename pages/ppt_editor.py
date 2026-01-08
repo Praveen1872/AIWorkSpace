@@ -169,7 +169,10 @@ def clean_text(text):
     return re.sub(r'\*\*|#+', '', str(text)).strip()
 
 
-API_KEY = st.secrets["GEMINI_API_KEY"]
+import os
+
+API_KEY = os.getenv("GEMINI_API_KEY")
+
 client = genai.Client(api_key=API_KEY)
 
 

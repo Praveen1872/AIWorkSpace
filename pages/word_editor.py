@@ -104,8 +104,11 @@ def create_docx(content):
     return buffer
 
 
+
+
+import os 
 try:
-    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 except Exception as e:
     st.error(f"Gemini Initialization Failed: {e}")
 def store_word_chunks(word_doc_ref, full_text):
