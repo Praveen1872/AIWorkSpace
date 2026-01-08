@@ -456,11 +456,12 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
         st.image(up_img, caption="Image Attachment Ready", width=300)
 if prompt := st.chat_input(f"Ask your {feature}..."):
 
-    # Store user message
+    # ---------------- STORE USER MESSAGE ----------------
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
     })
+
     chats_col.add({
         "role": "user",
         "content": prompt,
@@ -475,7 +476,7 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
                 career_ref, career_profile = get_career_profile(user_uid)
 
-                # 🔐 Initialize profile if first time
+                # 🔐 Initialize profile
                 if not career_profile:
                     career_profile = {
                         "career_step": 0,
@@ -485,21 +486,21 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
                 step = career_profile.get("career_step", 0)
 
-                # 📌 Intake phase (ask questions)
+                # 🟢 SAVE PREVIOUS ANSWER
+                if step > 0 and step <= len(CAREER_STEPS):
+                    prev_field, _ = CAREER_STEPS[step - 1]
+                    career_profile[prev_field] = prompt
+
+                # 🟢 INTAKE PHASE
                 if step < len(CAREER_STEPS):
-                    field, question = CAREER_STEPS[step]
+                    career_profile["career_step"] = step + 1
+                    career_profile["updated_at"] = firestore.SERVER_TIMESTAMP
+                    career_ref.set(career_profile, merge=True)
 
-                    # Save previous answer (if not first question)
-                    if step > 0:
-                        prev_field, _ = CAREER_STEPS[step - 1]
-                        career_profile[prev_field] = prompt
-                        career_profile["career_step"] = step
-                        career_profile["updated_at"] = firestore.SERVER_TIMESTAMP
-                        career_ref.set(career_profile, merge=True)
+                    _, next_question = CAREER_STEPS[step]
+                    final_answer = next_question
 
-                    final_answer = question
-
-                # 🎓 Guidance phase
+                # 🟢 GUIDANCE PHASE
                 else:
                     career_profile["completed"] = True
                     career_ref.set(career_profile, merge=True)
@@ -561,13 +562,14 @@ Rules:
                     )
                     final_answer = ollama_response["message"]["content"]
 
-            # Display + store assistant message
+            # ---------------- DISPLAY + SAVE AI RESPONSE ----------------
             st.markdown(final_answer)
 
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": final_answer
             })
+
             chats_col.add({
                 "role": "assistant",
                 "content": final_answer,
