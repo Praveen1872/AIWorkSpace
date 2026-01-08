@@ -193,9 +193,7 @@ st.markdown("""
 def clean_text(text):
     return re.sub(r'\*\*|#+', '', str(text)).strip()
 
-if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
-    st.info("👋 Ask the Assistant to generate slides")
-    st.stop()
+
 
 import os
 
@@ -228,6 +226,9 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
                 return res_json.get('slides'), res_json.get('mentor_advice'), model_name
         except: continue
     return None, None, None
+if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
+    st.info("👋 Ask the Assistant to generate slides")
+    st.stop()
 def ai_style_title(instruction):
     """
     Converts natural language into title style JSON
