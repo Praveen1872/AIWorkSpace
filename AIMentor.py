@@ -576,11 +576,14 @@ if not career_profile or not career_profile.get("completed"):
             career_ref.set(career_profile, merge=True)
     
 
-    # Mark completion
+    # 🔒 CAREER COMPLETION CHECK — ONLY IN CAREER GUIDE
+if feature == "Career Guide" and career_profile:
     required = ["interests", "skills", "academic_background", "career_goals"]
+
     if all(k in career_profile for k in required):
         career_profile["completed"] = True
         career_ref.set(career_profile, merge=True)
+
 
 
     st.rerun()
