@@ -8,6 +8,8 @@ from google import genai
 from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
+git add pages/ppt_editor.py
+
 
 st.set_page_config(page_title="Slide Architect Pro", layout="wide")
 st.markdown("""
@@ -441,75 +443,61 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
                 st.session_state.ppt_data.pop(st.session_state.current_slide_idx)
                 st.rerun()
         with c2:
-           prs = Presentation()
-           prs.slide_width = 9144000 
-           prs.slide_height = 6858000
-           for s in st.session_state.ppt_data:
-                slide = prs.slides.add_slide(prs.slide_layouts[1])
+            prs = Presentation()
+    prs.slide_width = 9144000
+    prs.slide_height = 6858000
 
-                title_shape = slide.shapes.title
-                title_shape.text = clean_text(s.get("title", ""))
-                
-                hex_color = style.get("color", "#000000")  # default black
-                hex_color = hex_color.lstrip("#")
+    for i, s in enumerate(st.session_state.ppt_data):
+        slide = prs.slides.add_slide(prs.slide_layouts[1])
 
-# validate length
-                if len(hex_color) != 6:
-                    hex_color = "000000"
+        # ---------------- TITLE ----------------
+        title_shape = slide.shapes.title
+        title_shape.text = clean_text(s.get("title", ""))
 
+        # Get style safely
+        style = s.get("style", {})
+        if not isinstance(style, dict):
+            style = {}
 
-# Apply AI / manual title styles if present
-                style = st.session_state.slide_styles.get(i)
+        # Apply title styles SAFELY
+        for paragraph in title_shape.text_frame.paragraphs:
+            for run in paragraph.runs:
+                if "font" in style:
+                    run.font.name = style["font"]
 
-                if style:
-                    for paragraph in title_shape.text_frame.paragraphs:
-                        for run in paragraph.runs:
-                         if "font" in style:
-                            run.font.name = style["font"]
-
-                # 🔒 HARD SAFETY (FINAL)
-                style = active_slide.get("style")
-                st.write("DEBUG style value:", style, type(style))
-
-                if style is None or not isinstance(style, dict):
-                    style = {}
-                    active_slide["style"] = style
-
+                if "size" in style:
+                    run.font.size = Pt(int(style["size"]))
 
                 if "weight" in style:
                     run.font.bold = style["weight"] >= 700
 
                 if "color" in style:
                     hex_color = style["color"].lstrip("#")
-                run.font.color.rgb = rgb_color = (
-    int(hex_color[0:2], 16),
-    int(hex_color[2:4], 16),
-    int(hex_color[4:6], 16),
-)
+                    if len(hex_color) == 6:
+                        run.font.color.rgb = RGBColor(
+                            int(hex_color[0:2], 16),
+                            int(hex_color[2:4], 16),
+                            int(hex_color[4:6], 16),
+                        )
 
+        # ---------------- CONTENT ----------------
+        slide_points = s.get("points", [])[:7]
+        combined_text = "\n".join([clean_text(p) for p in slide_points])
 
-                slide = prs.slides.add_slide(prs.slide_layouts[1]) 
-                slide.shapes.title.text = clean_text(s.get('title', ''))
-    
-                 # Export the single points list (limited to 7)
-                slide_points = s.get('points', [])[:7]
-                combined_text = "\n".join([clean_text(p) for p in slide_points])
-    
-                if len(slide.placeholders) > 1:
-                    slide.placeholders[1].text = combined_text
-                   
-           buf = io.BytesIO()
-           prs.save(buf)
-           st.download_button(
-                label="📥 Download PPTX",
-                data=buf.getvalue(),
-                file_name="presentation.pptx",
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                use_container_width=True
-)
-          
-    else:
-        st.info("👋 Ask the Assistant to generate !")
+        if len(slide.placeholders) > 1:
+            slide.placeholders[1].text = combined_text
+
+    # ---------------- DOWNLOAD ----------------
+    buf = io.BytesIO()
+    prs.save(buf)
+
+    st.download_button(
+        label="📥 Download PPTX",
+        data=buf.getvalue(),
+        file_name="presentation.pptx",
+        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        use_container_width=True,
+    )
 
 
 with col_chat:
