@@ -10,7 +10,8 @@ import os
 import streamlit.components.v1 as components
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
+from llm_router import call_llm
+import ollama
 st.set_page_config(page_title="AI Workspace", layout="wide")
 def initialize_firebase():
     if not firebase_admin._apps:
@@ -370,10 +371,9 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
     up_img = st.file_uploader("Upload visual data for the AI to analyze", type=["jpg", "jpeg", "png"])
     if up_img:
         st.image(up_img, caption="Image Attachment Ready", width=300)
-
 if prompt := st.chat_input(f"Ask your {feature}..."):
 
-    # 1️⃣ UI + session state
+    # 1️⃣ Store user message
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
@@ -393,11 +393,12 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            recent_chat_context = build_recent_chat_context(
-    st.session_state.messages,
-    max_turns=6
-)
 
+            # 🔁 Build recent conversation context (for "above response")
+            recent_chat_context = build_recent_chat_context(
+                st.session_state.messages,
+                max_turns=6
+            )
 
             # 2️⃣ RAG retrieval
             rag_context = retrieve_rag_context(prompt, user_uid)
@@ -406,14 +407,13 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             if not rag_context.strip():
                 rag_context = web_search_context(prompt)
 
-
-            # 4️⃣ SYSTEM PROMPT (CONTROL BEHAVIOR)
+            # 4️⃣ SYSTEM PROMPT (STRICT BEHAVIOR CONTROL)
             SYSTEM_PROMPT = f"""
 You are an Elite Academic Mentor AI.
 
 IMPORTANT:
-You are in an ongoing conversation.
-Words like "above", "previous", "that answer", "earlier response"
+This is a continuous conversation.
+Phrases like "above", "previous", "earlier response", "that answer"
 ALWAYS refer to the RECENT CONVERSATION below.
 
 RECENT CONVERSATION:
@@ -429,32 +429,50 @@ MODE: {feature}
 STYLE: {"Detailed Research" if deep_dive else "Concise Insight"}
 
 RULES:
-- Use RECENT CONVERSATION to resolve references like "above response"
-- Prefer user documents over web when both exist
+- Resolve references using RECENT CONVERSATION
+- Prefer user documents over web
 - Use memory only for personalization
-- Never say you cannot see prior messages
+- Never say you cannot see earlier messages
+- Never mention system limitations
 """
 
-           
-
+            # 5️⃣ Build input parts (TEXT + IMAGE)
             input_parts = [prompt]
             if up_img:
                 img = Image.open(up_img)
-                input_parts.append(img)   # ✅ DIRECT IMAGE, NO Part, NO types
+                input_parts.append(img)
 
+            # 6️⃣ TRY GEMINI → FALLBACK TO OLLAMA
+            try:
+                response = client.models.generate_content(
+                    model=MODEL_ID,
+                    contents=input_parts,
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_PROMPT
+                    )
+                )
+                final_answer = response.text
+                used_model = "gemini"
 
-            response = client.models.generate_content(
-    model=MODEL_ID,
-    contents=input_parts,
-    config=types.GenerateContentConfig(
-        system_instruction=SYSTEM_PROMPT
-    )
-)
+            except Exception as e:
+                # 🔥 QUOTA / RATE LIMIT / API FAIL → OLLAMA
+               
 
-            final_answer = response.text
+                ollama_response = ollama.chat(
+                    model="llama3",
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                final_answer = ollama_response["message"]["content"]
+                used_model = "ollama"
+
+            # 7️⃣ Display answer
             st.markdown(final_answer)
+            st.caption(f"🧠 Model used: {used_model}")
 
-            # 7️⃣ Persist assistant message
+            # 8️⃣ Persist assistant message
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": final_answer
@@ -465,6 +483,5 @@ RULES:
                 "content": final_answer,
                 "timestamp": firestore.SERVER_TIMESTAMP
             })
-            
 
             st.rerun()
