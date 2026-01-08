@@ -86,13 +86,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-if not st.session_state.get("logged_in", False):
-    st.markdown("""
-    <script>
-        window.location.href = "/google-login";
-    </script>
-    """, unsafe_allow_html=True)
-    st.stop()
+is_logged_in = st.session_state.get('logged_in', False)
+if not is_logged_in:
+    st.switch_page("pages/login.py")
 
 
 user_uid = st.session_state.get("user_uid")
