@@ -327,11 +327,7 @@ if "active_ppt_id" in st.session_state:
         st.session_state.ppt_data = slides
 
 
-if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
-    with col_stage:
-        st.info("👋 Ask the Assistant to generate slides")
-else:
-    pass  # allow rest of UI to render
+  # allow rest of UI to render
 
 
 # -------------------------------
@@ -353,7 +349,18 @@ if "current_slide_idx" in st.session_state:
 
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
 with col_stage:
-    st.title("🖼️ Slides Editor")
+     if "ppt_data" in st.session_state and st.session_state.ppt_data:
+        data = st.session_state.ppt_data
+
+        if "current_slide_idx" not in st.session_state:
+            st.session_state.current_slide_idx = 0
+
+        if st.session_state.current_slide_idx >= len(data):
+            st.session_state.current_slide_idx = 0
+
+        active_slide = data[st.session_state.current_slide_idx]
+    
+     st.title("🖼️ Slides Editor")
    
  
 style = st.session_state.slide_styles.get(
