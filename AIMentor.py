@@ -32,6 +32,66 @@ def initialize_firebase():
 
 
 firestore_db = initialize_firebase()
+
+st.set_page_config(page_title="AI Workspace", layout="centered")
+
+# --- SESSION INIT ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+# --- LOGIN UI ---
+if not st.session_state.logged_in:
+    st.markdown("""
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <script>
+      const firebaseConfig = {
+        apiKey: "%s",
+        authDomain: "%s"
+      };
+      firebase.initializeApp(firebaseConfig);
+
+      function googleLogin() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider)
+          .then(result => result.user.getIdToken())
+          .then(token => {
+            window.location.search = "?token=" + token;
+          })
+          .catch(err => alert(err.message));
+      }
+    </script>
+
+    <button onclick="googleLogin()" style="
+        padding:12px 24px;
+        border-radius:30px;
+        background:black;
+        color:white;
+        font-size:16px;
+    ">
+      Continue with Google
+    </button>
+    """ % (
+        os.getenv("FIREBASE_WEB_API_KEY"),
+        f"{os.getenv('FIREBASE_PROJECT_ID')}.firebaseapp.com"
+    ),
+    unsafe_allow_html=True)
+
+    # ---- HANDLE TOKEN RETURN ----
+    params = st.query_params
+    if "token" in params:
+        try:
+            decoded = auth.verify_id_token(params["token"])
+            st.session_state.logged_in = True
+            st.session_state.user_uid = decoded["uid"]
+            st.session_state.user_email = decoded["email"]
+            st.query_params.clear()
+            st.rerun()
+        except Exception as e:
+            st.error(f"Login failed: {e}")
+
+    st.stop()
 API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY)
 
