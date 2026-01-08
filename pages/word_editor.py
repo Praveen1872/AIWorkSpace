@@ -13,14 +13,19 @@ if not st.session_state.get("logged_in", False):
     </script>
     """, unsafe_allow_html=True)
     st.stop()
+
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
             cred = credentials.Certificate({
                 "type": "service_account",
                 "project_id": os.getenv("FIREBASE_PROJECT_ID"),
-                "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
                 "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+                "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+
+                # 🔑 REQUIRED EXTRA FIELDS
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             })
 
             firebase_admin.initialize_app(cred)
@@ -31,7 +36,6 @@ def initialize_firebase():
     return firestore.client()
 
 
-# Initialize once
 firestore_db = initialize_firebase()
 user_uid = st.session_state.get("user_uid")
 
