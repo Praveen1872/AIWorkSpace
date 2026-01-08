@@ -346,8 +346,13 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-
-       
+def build_recent_chat_context(messages, max_turns=6):
+    recent = messages[-max_turns:]
+    lines = []
+    for m in recent:
+        role = "User" if m["role"] == "user" else "Assistant"
+        lines.append(f"{role}: {m['content']}")
+    return "\n".join(lines)
 
 
 chat_display = st.container()
@@ -388,6 +393,11 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
+            recent_chat_context = build_recent_chat_context(
+    st.session_state.messages,
+    max_turns=6
+)
+
 
             # 2️⃣ RAG retrieval
             rag_context = retrieve_rag_context(prompt, user_uid)
@@ -396,25 +406,33 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             if not rag_context.strip():
                 rag_context = web_search_context(prompt)
 
+
             # 4️⃣ SYSTEM PROMPT (CONTROL BEHAVIOR)
             SYSTEM_PROMPT = f"""
 You are an Elite Academic Mentor AI.
 
+IMPORTANT:
+You are in an ongoing conversation.
+Words like "above", "previous", "that answer", "earlier response"
+ALWAYS refer to the RECENT CONVERSATION below.
+
+RECENT CONVERSATION:
+{recent_chat_context}
+
 LONG-TERM USER MEMORY:
 {long_term_memory}
 
-RETRIEVED CONTEXT (USER DOCUMENTS OR WEB SEARCH):
+RETRIEVED CONTEXT (USER DOCS / WEB):
 {rag_context}
 
 MODE: {feature}
 STYLE: {"Detailed Research" if deep_dive else "Concise Insight"}
 
 RULES:
-- Use retrieved context FIRST
-- Use memory ONLY for personalization
-- If image is provided, analyze it carefully
-- If context is insufficient, state uncertainty clearly
-- NEVER mention system limitations, browsing limits, or training data
+- Use RECENT CONVERSATION to resolve references like "above response"
+- Prefer user documents over web when both exist
+- Use memory only for personalization
+- Never say you cannot see prior messages
 """
 
            
@@ -447,5 +465,6 @@ RULES:
                 "content": final_answer,
                 "timestamp": firestore.SERVER_TIMESTAMP
             })
+            
 
             st.rerun()
