@@ -204,11 +204,13 @@ client = genai.Client(api_key=API_KEY)
 def call_ai_architect(prompt, current_data=None, active_idx=None):
 
     system_instr = (
-        "You are an Academic Slide Architect. Create slides with clear titles and concise bullet points. "
-        "Each slide MUST have a MAXIMUM of 4 bullet points. "
-        "Return ONLY valid JSON. "
-        "Do NOT include HTML, markdown, symbols, or numbering. "
-        "Points must be plain sentences only.\n\n"
+        "You are an Academic Slide Architect.\n"
+        "Create slides with clear titles and concise bullet points.\n"
+        "Each slide MUST have a MAXIMUM of 4 bullet points.\n"
+        "STRICT RULES:\n"
+        "- Return ONLY valid JSON\n"
+        "- Do NOT include HTML, markdown, symbols, bullets, or numbering\n"
+        "- Points must be plain text sentences only\n\n"
         "Format:\n"
         "{'slides': [{'title': 'Slide title', 'points': ['Point one', 'Point two']}], "
         "'mentor_advice': '...'}"
@@ -217,8 +219,8 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
     if current_data:
         focus = f"Slide {active_idx+1}" if active_idx is not None else "the whole deck"
         system_instr = (
-            f"Context: {json.dumps(current_data)}. "
-            f"Update {focus} based on: {prompt}. "
+            f"Context: {json.dumps(current_data)}\n"
+            f"Update {focus} based on: {prompt}\n\n"
             + system_instr
         )
 
@@ -232,36 +234,43 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
                 config={"system_instruction": system_instr},
             )
 
-            match = re.search(r"\{.*\}", response.text, re.DOTALL)
+            # 🔒 STRICT JSON EXTRACTION
+            match = re.search(r"\{[\s\S]*\}", response.text)
             if not match:
                 continue
 
             res_json = json.loads(match.group(0))
             slides = res_json.get("slides", [])
 
-            # 🔒 HARD SANITIZATION (CRITICAL)
             clean_slides = []
+
             for s in slides:
                 title = clean_text(s.get("title", ""))
 
                 points = []
                 for p in s.get("points", []):
-                    p = re.sub(r"<[^>]+>", "", str(p))  # remove HTML
-                    p = re.sub(r"^[•\-–\d\.]+", "", p)  # remove bullets/numbers
-                    points.append(p.strip())
+                    p = str(p)
+                    p = re.sub(r"<[^>]+>", "", p)       # remove HTML
+                    p = re.sub(r"^[•\-–\d\.\s]+", "", p)  # remove bullets/numbers
+                    p = clean_text(p)
 
-                clean_slides.append({
-                    "title": title,
-                    "points": points
-                })
+                    if p:  # 🔒 avoid empty bullets
+                        points.append(p)
 
-            return clean_slides, res_json.get("mentor_advice"), model_name
+                # 🔒 HARD GUARANTEE
+                if title and points:
+                    clean_slides.append({
+                        "title": title,
+                        "points": points[:4]  # enforce max 4
+                    })
 
-        except Exception as e:
+            if clean_slides:
+                return clean_slides, res_json.get("mentor_advice", ""), model_name
+
+        except Exception:
             continue
 
     return None, None, None
-
 
 def ai_style_title(instruction):
     """
