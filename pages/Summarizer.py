@@ -134,7 +134,11 @@ if "assistant_chat" not in st.session_state:
     st.session_state.assistant_chat = []
 import os
 # -------------------- AI Client --------------------
-client = genai.Client(API_KEY = os.getenv("GEMINI_API_KEY"))
+from google import genai
+
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
+)
 
 # -------------------- Helpers --------------------
 def extract_text_from_any(uploaded_file):
