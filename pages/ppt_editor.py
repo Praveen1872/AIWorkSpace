@@ -8,7 +8,7 @@ from google import genai
 from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
-git add pages/ppt_editor.py
+
 
 
 st.set_page_config(page_title="Slide Architect Pro", layout="wide")
