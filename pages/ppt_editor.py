@@ -391,9 +391,6 @@ if "current_slide_idx" in st.session_state:
         }
 
 
-# ===============================
-# SLIDES EDITOR
-# ===============================
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
 
 with col_stage:
@@ -467,34 +464,27 @@ with col_stage:
         title_display = clean_text(active_slide.get("title", "Untitled Slide"))
         points = active_slide.get("points", [])[:7]
 
-        points_html = "".join(
-            f"<div class='slide-point'>• {clean_text(p)}</div>"
-            for p in points
-        )
-
-        st.markdown(
-            f"""
-            <div class="slide-stage">
-                <div style="
-                    font-family:{style['font']};
-                    font-size:{style['size']}px;
-                    font-weight:{style['weight']};
-                    color:{style['color']};
-                    margin-bottom:25px;
-                    line-height:1.2;
-                    border-bottom:3px solid #3b82f6;
-                    padding-bottom:10px;
-                ">
-                    {title_display}
-                </div>
-
-                <div class="content-single">
-                    {points_html if points_html else "<i>No content</i>"}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+st.markdown(
+    f"""
+    <div class="slide-stage">
+        <div style="
+            font-family: {style['font']};
+            font-size: {style['size']}px;
+            font-weight: {style['weight']};
+            color: {style['color']};
+            margin-bottom: 25px;
+            line-height: 1.2;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 10px;
+        ">
+            {title_display}
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+for p in points:
+        st.markdown(f"- {p}")
 
         # ---------- NAVIGATOR ----------
         st.write("### 🎞️ Slide Navigator")
