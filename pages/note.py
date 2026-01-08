@@ -40,7 +40,7 @@ with h_cols[6]:
         st.switch_page("app.py")
 
 st.markdown(
-    "<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>",
+    "<hr style='margin:0 0 20px 0; '>",
     unsafe_allow_html=True
 )
 

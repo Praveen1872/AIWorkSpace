@@ -177,18 +177,18 @@ with h_cols[6]:
         st.switch_page("AIMentor.py")
 
 
-st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", unsafe_allow_html=True)
+st.markdown("<hr style='margin:0 0 20px 0;'>", unsafe_allow_html=True)
 
-st.markdown("""
-    <style>
+# st.markdown("""
+#     <style>
     
-    .slide-title { color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 25px; border-bottom: 3px solid #3b82f6; width: 100%; padding-bottom: 10px; }
-    .col-container { display: flex; gap: 30px; }
-    .content-col { flex: 1; }
-    .slide-point { font-size: 18px; margin-bottom: 12px; color: #475569; line-height: 1.6; }
-    .mentor-box { background-color: #f0fdf4; border-left: 5px solid #22c55e; padding: 15px; border-radius: 5px; margin-top: 10px; }
-    </style>
-""", unsafe_allow_html=True)
+#     .slide-title { color: #1e293b; font-size: 32px; font-weight: 800; margin-bottom: 25px; border-bottom: 3px solid #3b82f6; width: 100%; padding-bottom: 10px; }
+#     .col-container { display: flex; gap: 30px; }
+#     .content-col { flex: 1; }
+#     .slide-point { font-size: 18px; margin-bottom: 12px; color: #475569; line-height: 1.6; }
+#     .mentor-box { background-color: #f0fdf4; border-left: 5px solid #22c55e; padding: 15px; border-radius: 5px; margin-top: 10px; }
+#     </style>
+# """, unsafe_allow_html=True)
 
 def clean_text(text):
     return re.sub(r'\*\*|#+', '', str(text)).strip()

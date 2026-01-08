@@ -186,7 +186,7 @@ if not is_logged_in:
             st.switch_page("pages/register.py")
 
         st.markdown(
-            "<p style='text-align:center; color:#888;'>Powered by <b>Google Gemini AI</b></p>",
+            "<p style='text-align:center; '>Powered by <b>Google Gemini AI</b></p>",
             unsafe_allow_html=True
         )
 
@@ -335,7 +335,7 @@ Query:
 
 
 with st.sidebar:
-    st.markdown("<h2 style='color: #FF6042;'>🛠️ Workspace</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>🛠️ Workspace</h2>", unsafe_allow_html=True)
 
     feature = st.radio("Model Context:", ["Doubts Solver", "Career Guide"])
     st.markdown("---")

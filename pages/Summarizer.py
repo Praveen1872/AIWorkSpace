@@ -119,7 +119,7 @@ with h_cols[6]:
         st.session_state.logged_in = False
         st.switch_page("AIMentor.py")
 
-st.markdown("<hr style='margin:0 0 20px 0; border-top: 1px solid #E0DEDD;'>", unsafe_allow_html=True)
+st.markdown("<hr style='margin:0 0 20px 0;'>", unsafe_allow_html=True)
 # -------------------- Session State Init --------------------
 if "active_context" not in st.session_state:
     st.session_state.active_context = ""
