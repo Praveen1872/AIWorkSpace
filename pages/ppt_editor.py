@@ -324,7 +324,9 @@ if (
         st.session_state.ppt_data = slides
 
 # 🛑 Guard: only stop slide rendering if no slides exist
-
+if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
+    st.info("👋 Ask the Assistant to generate slides")
+    
 
 
 # -------------------------------
