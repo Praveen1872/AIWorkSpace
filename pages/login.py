@@ -13,25 +13,116 @@ st.set_page_config(
 # ------------------ STYLING ------------------
 st.markdown("""
 <style>
-.stApp { background-color: #FAF8F7; }
-[data-testid="stVerticalBlock"] > div:nth-child(2) {
-    background-color: white;
-    padding: 40px;
-    border-radius: 25px;
-    border: 1px solid #E0DEDD;
-    box-shadow: 0px 4px 20px rgba(0,0,0,0.03);
+/* App-wide theme for AI Workspace */
+.stApp { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    min-height: 100vh;
 }
-.title-text { text-align: center; font-weight: 800; font-size: 2.2rem; }
-.subtitle-text { text-align: center; color: #666; margin-bottom: 30px; }
+
+/* Main container - responsive padding and shadow */
+[data-testid="stVerticalBlock"] > div:nth-child(2) {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 3rem;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    max-width: 450px;
+    margin: 2rem auto;
+}
+
+/* Title - larger, with glow effect */
+.title-text { 
+    text-align: center; 
+    font-weight: 900; 
+    font-size: clamp(2rem, 5vw, 3rem); 
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+}
+
+/* Subtitle */
+.subtitle-text { 
+    text-align: center; 
+    color: #6b7280; 
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+/* Input fields - modern glassmorphism */
+.stTextInput > div > div > input {
+    border-radius: 16px !important;
+    border: 2px solid #e5e7eb !important;
+    padding: 1rem 1.5rem !important;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.8);
+}
+.stTextInput > div > div > input:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Buttons - gradient, hover lift */
 div.stButton > button {
     width: 100%;
     border-radius: 50px;
-    height: 3.5em;
-    background-color: #1A1A1A;
+    height: 3.5rem;
+    background: linear-gradient(45deg, #667eea, #764ba2);
     color: white;
     border: none;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
 }
+div.stButton > button:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+}
+div.stButton > button:active {
+    transform: translateY(-2px);
+}
+
+/* Messages - styled */
+.stSuccess > div, .stError > div, .stWarning > div {
+    border-radius: 12px;
+    border-left: 4px solid #10b981;
+}
+
+/* Register button separator */
+hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+    margin: 2rem 0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    [data-testid="stVerticalBlock"] > div:nth-child(2) {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+        border-radius: 20px;
+    }
+    .title-text {
+        font-size: 2rem;
+    }
+    div.stButton > button {
+        height: 3rem;
+        font-size: 1rem;
+    }
+}
+
+/* Dark mode support (optional enhancement) */
+@media (prefers-color-scheme: dark) {
+    .stApp { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+    [data-testid="stVerticalBlock"] > div:nth-child(2) {
+        background: rgba(30, 41, 59, 0.95);
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
