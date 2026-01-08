@@ -193,6 +193,9 @@ st.markdown("""
 def clean_text(text):
     return re.sub(r'\*\*|#+', '', str(text)).strip()
 
+if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
+    st.info("👋 Ask the Assistant to generate slides")
+    st.stop()
 
 import os
 
@@ -301,7 +304,10 @@ with st.sidebar:
             doc.reference.delete()
         st.session_state.pop("ppt_data", None)
         st.rerun()
-if "active_ppt_id" in st.session_state:
+if (
+    "active_ppt_id" in st.session_state
+    and "ppt_data" not in st.session_state
+):
     ppt_doc = ppt_col.document(st.session_state.active_ppt_id)
     chunks = ppt_doc.collection("chunks").stream()
 
@@ -313,7 +319,9 @@ if "active_ppt_id" in st.session_state:
             "points": data.get("points", [])
         })
 
-    st.session_state.ppt_data = slides
+    if slides:
+        st.session_state.ppt_data = slides
+
 
 # -------------------------------
 # Slide Title Style State (PER SLIDE)
@@ -465,7 +473,26 @@ with c2:
             slide = prs.slides.add_slide(prs.slide_layouts[1])
 
             # TITLE
-            slide.shapes.title.text = clean_text(s.get("title", ""))
+           
+            title_shape = slide.shapes.title
+title_shape.text = clean_text(s.get("title", ""))
+
+style = s.get("style", {})
+
+for paragraph in title_shape.text_frame.paragraphs:
+    for run in paragraph.runs:
+        run.font.name = style.get("font", "Arial")
+        run.font.size = Pt(style.get("size", 42))
+        run.font.bold = style.get("weight", 800) >= 700
+
+        hex_color = style.get("color", "#000000").lstrip("#")
+        if len(hex_color) == 6:
+            run.font.color.rgb = RGBColor(
+                int(hex_color[0:2], 16),
+                int(hex_color[2:4], 16),
+                int(hex_color[4:6], 16),
+            )
+
 
             # CONTENT
             slide_points = s.get("points", [])[:7]
@@ -542,8 +569,20 @@ if user_in := ppt_prompt:
         )
 
         if new_slides:
-            # Update session slides
-            st.session_state.ppt_data = new_slides
+            st.session_state.ppt_data = []
+
+            for i, slide in enumerate(new_slides):
+                slide["style"] = st.session_state.slide_styles.get(
+        i,
+        {
+            "font": "Arial",
+            "size": 42,
+            "weight": 800,
+            "color": "#1e293b"
+        }
+    )
+            st.session_state.ppt_data.append(slide)
+
 
             st.session_state.chat_history.append({
                 "role": "assistant",
