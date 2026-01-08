@@ -379,9 +379,11 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
             
         active_slide = data[st.session_state.current_slide_idx]
 
-# ✅ SAFE STYLE INITIALIZATION
+
         style = active_slide.get("style") or {}
         active_slide["style"] = style
+
+
 
         title_display = clean_text(active_slide.get('title', 'Untitled Slide'))
         active_points = active_slide.get("points", [])[:7] # Strict 7-point limit
