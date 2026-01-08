@@ -94,6 +94,11 @@ is_logged_in = st.session_state.get('logged_in', False)
 if not is_logged_in:
     st.switch_page("pages/login.py")
 
+# ✅ REQUIRED INITIALIZATION
+if "current_slide_idx" not in st.session_state:
+    st.session_state.current_slide_idx = 0
+
+
 
 user_uid = st.session_state.get("user_uid")
 
@@ -146,6 +151,7 @@ ppt_col = (
     .document("ppt")
     .collection("items")
 )
+
 
 
 h_cols = st.columns([2, 0.9, 0.9, 0.9, 1.5, 0.8, 1], vertical_alignment="center")
