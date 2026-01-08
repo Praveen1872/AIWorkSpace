@@ -437,6 +437,11 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
                     st.rerun()
 
         st.divider()
+        # ✅ ALWAYS define before using
+        prs = Presentation()
+        prs.slide_width = 9144000
+        prs.slide_height = 6858000
+
         c1, c2 = st.columns(2)
         with c1:
             if st.button("🗑️ Delete Slide", use_container_width=True):
