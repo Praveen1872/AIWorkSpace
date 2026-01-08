@@ -7,6 +7,7 @@ from fpdf import FPDF
 import PIL.Image
 import io
 import os
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="AI Workspace", layout="wide")
 def initialize_firebase():
@@ -31,40 +32,51 @@ if "logged_in" not in st.session_state:
 
 
 if not st.session_state.logged_in:
-    st.markdown(f"""
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-    <script>
-      const firebaseConfig = {{
-        apiKey: "{os.getenv('FIREBASE_WEB_API_KEY')}",
-        authDomain: "{os.getenv('FIREBASE_PROJECT_ID')}.firebaseapp.com"
-      }};
-      firebase.initializeApp(firebaseConfig);
+    components.html(
+        f"""
+        <html>
+        <head>
+          <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+          <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+        </head>
+        <body style="display:flex;justify-content:center;align-items:center;height:100vh;">
 
-      function googleLogin() {{
-        const provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider)
-          .then(result => result.user.getIdToken())
-          .then(token => {{
-            window.location.search = "?token=" + token;
-          }})
-          .catch(err => alert(err.message));
-      }}
-    </script>
+        <script>
+          const firebaseConfig = {{
+            apiKey: "{os.getenv('FIREBASE_WEB_API_KEY')}",
+            authDomain: "{os.getenv('FIREBASE_PROJECT_ID')}.firebaseapp.com"
+          }};
+          firebase.initializeApp(firebaseConfig);
 
-    <div style="text-align:center; margin-top:100px;">
-      <button onclick="googleLogin()" style="
-        padding:14px 28px;
-        border-radius:30px;
-        background:black;
-        color:white;
-        font-size:16px;
-      ">
-        Continue with Google
-      </button>
-    </div>
-    """, unsafe_allow_html=True)
+          function googleLogin() {{
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider)
+              .then(result => result.user.getIdToken())
+              .then(token => {{
+                window.parent.location.search = "?token=" + token;
+              }})
+              .catch(err => alert(err.message));
+          }}
+        </script>
+
+        <button onclick="googleLogin()" style="
+            padding:14px 30px;
+            border-radius:30px;
+            border:none;
+            background:black;
+            color:white;
+            font-size:16px;
+            cursor:pointer;
+        ">
+            Continue with Google
+        </button>
+
+        </body>
+        </html>
+        """,
+        height=400,
+    )
 
     # Handle token
     params = st.query_params
