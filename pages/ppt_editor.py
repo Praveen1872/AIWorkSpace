@@ -449,6 +449,14 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
 
                 title_shape = slide.shapes.title
                 title_shape.text = clean_text(s.get("title", ""))
+                
+                hex_color = style.get("color", "#000000")  # default black
+                hex_color = hex_color.lstrip("#")
+
+# validate length
+                if len(hex_color) != 6:
+                    hex_color = "000000"
+
 
 # Apply AI / manual title styles if present
                 style = st.session_state.slide_styles.get(i)
@@ -473,11 +481,12 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
 
                 if "color" in style:
                     hex_color = style["color"].lstrip("#")
-                run.font.color.rgb = RGBColor(
-                    int(hex_color[0:2], 16),
-                    int(hex_color[2:4], 16),
-                    int(hex_color[4:6], 16)
-                )
+                run.font.color.rgb = rgb_color = (
+    int(hex_color[0:2], 16),
+    int(hex_color[2:4], 16),
+    int(hex_color[4:6], 16),
+)
+
 
                 slide = prs.slides.add_slide(prs.slide_layouts[1]) 
                 slide.shapes.title.text = clean_text(s.get('title', ''))
