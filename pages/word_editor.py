@@ -6,9 +6,13 @@ import re
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-is_logged_in = st.session_state.get('logged_in', False)
-if not is_logged_in:
-    st.switch_page("pages/login.py")
+if not st.session_state.get("logged_in", False):
+    st.markdown("""
+    <script>
+        window.location.href = "/google-login";
+    </script>
+    """, unsafe_allow_html=True)
+    st.stop()
 def initialize_firebase():
     if not firebase_admin._apps:
         creds = dict(st.secrets["firebase_credentials"])

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Login</title>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+
+<body style="display:flex;justify-content:center;align-items:center;height:100vh;">
+
+<button onclick="googleLogin()" style="
+  padding:14px 28px;
+  font-size:16px;
+  border-radius:30px;
+  border:none;
+  background:black;
+  color:white;
+  cursor:pointer;
+">
+  Continue with Google
+</button>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_WEB_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+
+  function googleLogin() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider)
+      .then(result => result.user.getIdToken())
+      .then(token => {
+        window.location.href = "/auth-verify?token=" + token;
+      })
+      .catch(err => alert(err.message));
+  }
+</script>
+
+</body>
+</html>
