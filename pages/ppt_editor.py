@@ -525,8 +525,11 @@ c1, c2 = st.columns(2)
 # ---------------- DELETE SLIDE ----------------
 with c1:
     if st.button("🗑️ Delete Slide", use_container_width=True):
-        st.session_state.ppt_data.pop(st.session_state.current_slide_idx)
-        st.rerun()
+        if len(st.session_state.ppt_data) > 0:
+            st.session_state.ppt_data.pop(st.session_state.current_slide_idx)
+        # Shift index back so it doesn't point to a ghost slide
+            st.session_state.current_slide_idx = max(0, st.session_state.current_slide_idx - 1)
+            st.rerun()
 
 # ---------------- EXPORT PPT ----------------
 # ---------------- EXPORT PPT ----------------
