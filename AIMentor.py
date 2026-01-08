@@ -8,90 +8,76 @@ import PIL.Image
 import io
 import os
 
-
+st.set_page_config(page_title="AI Workspace", layout="wide")
 def initialize_firebase():
     if not firebase_admin._apps:
-        try:
-            cred = credentials.Certificate({
-                "type": "service_account",
-                "project_id": os.getenv("FIREBASE_PROJECT_ID"),
-                "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
-                "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
-
-                # 🔑 REQUIRED EXTRA FIELDS
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            })
-
-            firebase_admin.initialize_app(cred)
-
-        except Exception as e:
-            raise RuntimeError(f"Firebase Initialization Failed: {e}")
-
+        cred = credentials.Certificate({
+            "type": "service_account",
+            "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+            "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+            "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        })
+        firebase_admin.initialize_app(cred)
     return firestore.client()
-
 
 firestore_db = initialize_firebase()
 
-st.set_page_config(page_title="AI Workspace", layout="centered")
 
-# --- SESSION INIT ---
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# --- LOGIN UI ---
+
 if not st.session_state.logged_in:
-    st.markdown("""
+    st.markdown(f"""
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
     <script>
-      const firebaseConfig = {
-        apiKey: "%s",
-        authDomain: "%s"
-      };
+      const firebaseConfig = {{
+        apiKey: "{os.getenv('FIREBASE_WEB_API_KEY')}",
+        authDomain: "{os.getenv('FIREBASE_PROJECT_ID')}.firebaseapp.com"
+      }};
       firebase.initializeApp(firebaseConfig);
 
-      function googleLogin() {
+      function googleLogin() {{
         const provider = new firebase.auth.GoogleAuthProvider();
         firebase.auth().signInWithPopup(provider)
           .then(result => result.user.getIdToken())
-          .then(token => {
+          .then(token => {{
             window.location.search = "?token=" + token;
-          })
+          }})
           .catch(err => alert(err.message));
-      }
+      }}
     </script>
 
-    <button onclick="googleLogin()" style="
-        padding:12px 24px;
+    <div style="text-align:center; margin-top:100px;">
+      <button onclick="googleLogin()" style="
+        padding:14px 28px;
         border-radius:30px;
         background:black;
         color:white;
         font-size:16px;
-    ">
-      Continue with Google
-    </button>
-    """ % (
-        os.getenv("FIREBASE_WEB_API_KEY"),
-        f"{os.getenv('FIREBASE_PROJECT_ID')}.firebaseapp.com"
-    ),
-    unsafe_allow_html=True)
+      ">
+        Continue with Google
+      </button>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # ---- HANDLE TOKEN RETURN ----
+    # Handle token
     params = st.query_params
     if "token" in params:
-        try:
-            decoded = auth.verify_id_token(params["token"])
-            st.session_state.logged_in = True
-            st.session_state.user_uid = decoded["uid"]
-            st.session_state.user_email = decoded["email"]
-            st.query_params.clear()
-            st.rerun()
-        except Exception as e:
-            st.error(f"Login failed: {e}")
+        decoded = auth.verify_id_token(params["token"])
+        st.session_state.logged_in = True
+        st.session_state.user_uid = decoded["uid"]
+        st.session_state.user_email = decoded["email"]
+        st.query_params.clear()
+        st.rerun()
 
     st.stop()
+
 API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY)
 
@@ -181,9 +167,6 @@ def export_last_chat_to_pdf(user_text, ai_text):
 
 import streamlit as st
 
-# ------------------ SESSION INIT ------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
 
 # ------------------ HEADER ------------------
 cols = st.columns([2, 0.8, 0.8, 0.8, 1.1, 1.5], vertical_alignment="center")
@@ -203,27 +186,25 @@ if st.session_state.logged_in:
         if st.button("Summarize 🧠"): st.switch_page("pages/Summarizer.py")
     with cols[5]:
         if st.button("Logout 🚪"):
-            # Clear session safely
             for k in ["logged_in", "user_uid", "user_email"]:
                 st.session_state.pop(k, None)
             st.rerun()
 
-# ------------------ NOT LOGGED IN ------------------
+# ------------------ NOT LOGGED IN (NO ROUTES!) ------------------
 else:
     with cols[5]:
         st.markdown("""
-        <a href="/google-login" target="_self">
-            <button style="
-                padding:10px 20px;
-                border-radius:30px;
-                border:none;
-                background:black;
-                color:white;
-                font-weight:600;
-            ">
-                Continue with Google 👤
-            </button>
-        </a>
+        <button onclick="googleLogin()" style="
+            padding:10px 20px;
+            border-radius:30px;
+            border:none;
+            background:black;
+            color:white;
+            font-weight:600;
+            cursor:pointer;
+        ">
+            Continue with Google 👤
+        </button>
         """, unsafe_allow_html=True)
 
 st.markdown("<hr>", unsafe_allow_html=True)
@@ -244,14 +225,27 @@ if not st.session_state.logged_in:
 
         st.info("💡 Sign in with Google to access your personalized AI workspace.")
 
+        st.markdown("""
+        <button onclick="googleLogin()" style="
+            margin-top:20px;
+            padding:14px 28px;
+            border-radius:30px;
+            border:none;
+            background:black;
+            color:white;
+            font-size:16px;
+            cursor:pointer;
+        ">
+            Continue with Google 🚀
+        </button>
+        """, unsafe_allow_html=True)
+
     with col2:
         st.image("assets/banner2_desktop.png", use_container_width=True)
 
     st.stop()
 
 # ------------------ AI MENTOR CORE ------------------
-# Only reaches here if logged in
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -260,7 +254,6 @@ user_uid = st.session_state.get("user_uid")
 st.success(f"Welcome back! ({st.session_state.get('user_email')})")
 st.write("Ask your AI Mentor anything 👇")
 
-# (Your AI chat logic continues below)
 
 
 chats_col = (
