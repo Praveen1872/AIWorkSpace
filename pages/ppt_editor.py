@@ -437,36 +437,40 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
                     st.rerun()
 
         st.divider()
-        # ✅ ALWAYS define before using
-        prs = Presentation()
-        prs.slide_width = 9144000
-        prs.slide_height = 6858000
+        from pptx.util import Pt
+from pptx.enum.text import PP_ALIGN
+from pptx.dml.color import RGBColor
 
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("🗑️ Delete Slide", use_container_width=True):
-                st.session_state.ppt_data.pop(st.session_state.current_slide_idx)
-                st.rerun()
-        with c2:
-            prs = Presentation()
-    prs.slide_width = 9144000
-    prs.slide_height = 6858000
+# ✅ ALWAYS create Presentation ONCE
+prs = Presentation()
+prs.slide_width = 9144000
+prs.slide_height = 6858000
 
+c1, c2 = st.columns(2)
+
+# ---------------- DELETE SLIDE ----------------
+with c1:
+    if st.button("🗑️ Delete Slide", use_container_width=True):
+        st.session_state.ppt_data.pop(st.session_state.current_slide_idx)
+        st.rerun()
+
+# ---------------- EXPORT PPT ----------------
+with c2:
     for i, s in enumerate(st.session_state.ppt_data):
+
         slide = prs.slides.add_slide(prs.slide_layouts[1])
 
-        # ---------------- TITLE ----------------
+        # ---------- TITLE ----------
         title_shape = slide.shapes.title
         title_shape.text = clean_text(s.get("title", ""))
 
-        # Get style safely
         style = s.get("style", {})
         if not isinstance(style, dict):
             style = {}
 
-        # Apply title styles SAFELY
         for paragraph in title_shape.text_frame.paragraphs:
             for run in paragraph.runs:
+
                 if "font" in style:
                     run.font.name = style["font"]
 
@@ -485,24 +489,25 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
                             int(hex_color[4:6], 16),
                         )
 
-        # ---------------- CONTENT ----------------
+        # ---------- CONTENT ----------
         slide_points = s.get("points", [])[:7]
-        combined_text = "\n".join([clean_text(p) for p in slide_points])
+        combined_text = "\n".join(clean_text(p) for p in slide_points)
 
         if len(slide.placeholders) > 1:
             slide.placeholders[1].text = combined_text
 
-    # ---------------- DOWNLOAD ----------------
+    # ---------- DOWNLOAD ----------
     buf = io.BytesIO()
     prs.save(buf)
 
     st.download_button(
-        label="📥 Download PPTX",
+        "📥 Download PPTX",
         data=buf.getvalue(),
         file_name="presentation.pptx",
         mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
         use_container_width=True,
     )
+
 
 
 with col_chat:
