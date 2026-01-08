@@ -392,112 +392,42 @@ if "current_slide_idx" in st.session_state:
 
 
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
+
 with col_stage:
-    st.title("🖼️ Slides Editor")
-# 1. Get the data
-data = st.session_state.ppt_data
+    if not st.session_state.get("ppt_data"):
+        st.info("👋 Ask the Assistant to generate slides")
+    else:
+        # Current Slide Data
+        data = st.session_state.ppt_data
+        idx = st.session_state.current_slide_idx
+        active_slide = data[idx]
+        
+        # Get style (Manual user changes happen here)
+        style = st.session_state.slide_styles.get(idx, {"font": "Arial", "size": 42, "weight": 800, "color": "#1e293b"})
 
-# 2. 🛡️ INDEX SAFETY CHECK
-if not data:
-    st.info("👋 Ask the Assistant to generate slides")
-    st.stop() # Prevents the rest of the code from running until there is data
+        # --- Manual Style UI ---
+        with st.expander("🎨 Manual Style Adjustments"):
+            c1, c2, c3 = st.columns(3)
+            new_font = c1.selectbox("Font", ["Arial", "Poppins", "Montserrat"], index=0)
+            new_size = c2.slider("Size", 20, 80, style["size"])
+            new_color = c3.color_picker("Color", style["color"])
+            
+            # Save manual changes back to state
+            st.session_state.slide_styles[idx] = {
+                "font": new_font, "size": new_size, "weight": 800, "color": new_color
+            }
 
-# 3. Ensure the current index isn't larger than the number of slides we actually have
-if st.session_state.current_slide_idx >= len(data):
-    st.session_state.current_slide_idx = 0  # Reset to first slide if out of bounds
-
-# 4. Now it is safe to access the slide
-    active_slide = data[st.session_state.current_slide_idx]
-
-    # ---------- Ensure style exists ----------
-    if "slide_styles" not in st.session_state:
-        st.session_state.slide_styles = {}
-
-    if st.session_state.current_slide_idx not in st.session_state.slide_styles:
-        st.session_state.slide_styles[st.session_state.current_slide_idx] = {
-            "font": "Arial",
-            "size": 42,
-            "weight": 800,
-            "color": "#1e293b"
-        }
-
-    style = st.session_state.slide_styles[st.session_state.current_slide_idx]
-
-    # ---------- TITLE STYLE CONTROLS ----------
-    with st.expander("🎨 Title Style (Active Slide)", expanded=False):
-        font = st.selectbox(
-            "Font Family",
-            options=sum(FONT_GROUPS.values(), []),
-            index=sum(FONT_GROUPS.values(), []).index(style["font"])
-        )
-
-        size = st.number_input(
-            "Font Size",
-            min_value=18,
-            max_value=72,
-            value=style["size"],
-            step=1
-        )
-
-        bold = st.checkbox("Bold", value=style["weight"] >= 700)
-
-        color = st.color_picker("Title Color", value=style["color"])
-
-        st.session_state.slide_styles[st.session_state.current_slide_idx] = {
-            "font": font,
-            "size": size,
-            "weight": 800 if bold else 500,
-            "color": color
-        }
-
-        style = st.session_state.slide_styles[st.session_state.current_slide_idx]
-
-    # ---------- EDIT CONTENT ----------
-    st.subheader("✏️ Edit Slide Content")
-
-    active_slide["title"] = st.text_input(
-        "Slide Title",
-        value=active_slide.get("title", ""),
-        key=f"title_edit_{st.session_state.current_slide_idx}"
-    )
-
-    points = active_slide.get("points", [])
-
-    new_points = []
-    for i in range(4):  # max 4 bullets
-        text = st.text_input(
-            f"Point {i+1}",
-            value=points[i] if i < len(points) else "",
-            key=f"point_{st.session_state.current_slide_idx}_{i}"
-        )
-        if text.strip():
-            new_points.append(text.strip())
-
-    active_slide["points"] = new_points
-
-    # ---------- SLIDE PREVIEW ----------
-    st.markdown(
-        f"""
-        <div class="slide-stage">
-            <div style="
-                font-family: {style['font']};
-                font-size: {style['size']}px;
-                font-weight: {style['weight']};
-                color: {style['color']};
-                margin-bottom: 25px;
-                border-bottom: 3px solid #3b82f6;
-                padding-bottom: 10px;
-            ">
-                {clean_text(active_slide['title'])}
+        # --- Render Slide ---
+        st.markdown(f"""
+            <div style="background: white; padding: 40px; border-radius: 15px; border: 1px solid #ddd;">
+                <h1 style="font-family: {style['font']}; font-size: {style['size']}px; color: {style['color']};">
+                    {active_slide['title']}
+                </h1>
+                <ul>
+                    {"".join([f"<li>{p}</li>" for p in active_slide['points']])}
+                </ul>
             </div>
-
-            <div class="content-single">
-                {''.join(f"<div class='slide-point'>• {clean_text(p)}</div>" for p in new_points)}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        """, unsafe_allow_html=True)
 
     # ---------- NAVIGATOR ----------
     st.write("### 🎞️ Slide Navigator")
@@ -614,33 +544,27 @@ if st.button("✨ Apply AI Style"):
     else:
         st.warning("Could not understand style command")
 
-    
 if user_in := ppt_prompt:
     st.session_state.chat_history.append({"role": "user", "content": user_in})
 
     with st.spinner("Architecting ..."):
-        # Determine if we are updating one slide or the whole deck
         idx = st.session_state.current_slide_idx if edit_mode else None
-        
-        new_slides, advice, model_name = call_ai_architect(
-            user_in, 
-            st.session_state.ppt_data, 
-            idx
-        )
+        new_slides, advice, model_name = call_ai_architect(user_in, st.session_state.ppt_data, idx)
 
         if new_slides:
-            if edit_mode:
-                # 🎯 AI EDIT: Replace only the active slide
-                # (Assuming the AI returns at least one slide for the update)
-                st.session_state.ppt_data[st.session_state.current_slide_idx] = new_slides[0]
-            else:
-                # 🖼️ FULL GEN: Replace the entire deck
+            if not edit_mode:
                 st.session_state.ppt_data = new_slides
-            
-            # Save to history/database logic follows...
-            st.session_state.chat_history.append({
-                "role": "assistant", 
-                "content": "Changes applied!", 
-                "advice": advice
-            })
+                # Reset styles for a brand new presentation
+                st.session_state.slide_styles = {} 
+            else:
+                st.session_state.ppt_data[st.session_state.current_slide_idx] = new_slides[0]
+
+            # ✅ Ensure every slide has a style entry
+            for i in range(len(st.session_state.ppt_data)):
+                if i not in st.session_state.slide_styles:
+                    st.session_state.slide_styles[i] = {
+                        "font": "Arial", "size": 42, "weight": 800, "color": "#1e293b"
+                    }
+
+            st.session_state.chat_history.append({"role": "assistant", "content": "Updated!", "advice": advice})
             st.rerun()
