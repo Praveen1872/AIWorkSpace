@@ -50,7 +50,7 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY)
 
 
-MODEL_ID = "gemini-2.5-flash"
+MODEL_ID = "gemini-2.5-flash-lite"
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -577,3 +577,44 @@ Rules:
             })
 
             st.rerun()
+with st.sidebar:
+    if feature == "Career Guide":
+
+        career_ref, career_profile = get_career_profile(user_uid)
+
+        if career_profile and career_profile.get("completed"):
+
+            st.markdown("### ✏️ Edit Career Profile")
+
+            interests = st.text_area(
+                "Interests",
+                career_profile.get("interests", "")
+            )
+
+            skills = st.text_area(
+                "Skills",
+                career_profile.get("skills", "")
+            )
+
+            academic_background = st.text_area(
+                "Academic Background",
+                career_profile.get("academic_background", "")
+            )
+
+            career_goals = st.text_area(
+                "Career Goals",
+                career_profile.get("career_goals", "")
+            )
+
+            if st.button("💾 Save Changes"):
+                career_ref.set({
+                    "interests": interests,
+                    "skills": skills,
+                    "academic_background": academic_background,
+                    "career_goals": career_goals,
+                    "completed": True,
+                    "updated_at": firestore.SERVER_TIMESTAMP
+                }, merge=True)
+
+                st.success("Career profile updated successfully ✅")
+                st.rerun()
