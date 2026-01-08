@@ -482,6 +482,9 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
                 # ✅ Profile exists → Career guidance
                 else:
+                    if any(x in prompt.lower() for x in ["what is", "define", "explain", "how does"]):
+                        final_answer = "⚠️ Career Guide mode only answers career-related questions."
+
                     SYSTEM_PROMPT = build_career_system_prompt(career_profile)
 
                     response = client.models.generate_content(
@@ -553,17 +556,15 @@ Rules:
                 "content": final_answer,
                 "timestamp": firestore.SERVER_TIMESTAMP
             })
+            # ================= CAREER AUTO-SAVE (FIXED LOCATION) =================
+            if feature == "Career Guide":
 
-            st.rerun()
-if feature == "Career Guide":
+                career_ref, career_profile = get_career_profile(user_uid)
 
-    career_ref, career_profile = get_career_profile(user_uid)
+if not career_profile or not career_profile.get("completed"):
+ 
 
-    # 🔐 Initialize empty profile if not exists
-    if not career_profile:
-        career_profile = {}
-
-    # Try to extract answer from previous AI question
+    # Extract answer from last AI question
     if len(st.session_state.messages) >= 2:
         last_ai = st.session_state.messages[-2]["content"]
 
@@ -572,10 +573,14 @@ if feature == "Career Guide":
         if field:
             career_profile[field] = value
             career_profile["updated_at"] = firestore.SERVER_TIMESTAMP
-
             career_ref.set(career_profile, merge=True)
-required = ["interests", "skills", "academic_background", "career_goals"]
+    
 
-if all(k in career_profile for k in required):
-    career_profile["completed"] = True
-    career_ref.set(career_profile, merge=True)
+    # Mark completion
+    required = ["interests", "skills", "academic_background", "career_goals"]
+    if all(k in career_profile for k in required):
+        career_profile["completed"] = True
+        career_ref.set(career_profile, merge=True)
+
+
+    st.rerun()
