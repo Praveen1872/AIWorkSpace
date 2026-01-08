@@ -390,7 +390,9 @@ col_stage, col_chat = st.columns([1.8, 1], gap="large")
 with col_stage:
     st.title("🖼️ Slides Editor")
 
-    
+    # ---------- Guard ----------
+    if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
+        st.info("👋 Ask the Assistant to generate slides")
         
 
     data = st.session_state.ppt_data

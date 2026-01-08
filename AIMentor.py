@@ -28,13 +28,23 @@ def initialize_firebase():
 
 firestore_db = initialize_firebase()
 
+def get_career_profile(user_uid):
+    ref = (
+        firestore_db
+        .collection("users")
+        .document(user_uid)
+        .collection("career")
+        .document("profile")
+    )
+    doc = ref.get()
+    return ref, doc.to_dict() if doc.exists else None
 
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY)
 
 
-MODEL_ID = "gemini-2.5-flash"
+MODEL_ID = "gemini-2.5-flash-lite"
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -201,6 +211,16 @@ if "messages" not in st.session_state:
 
 user_uid = st.session_state["user_uid"]
 
+career_ref = (
+    firestore_db
+    .collection("users")
+    .document(user_uid)
+    .collection("career")
+    .document("profile")
+)
+career_doc = career_ref.get()
+
+career_profile = career_doc.to_dict() if career_doc.exists else None
 
 st.success(f"Welcome back! ({st.session_state.get('user_email')})")
 st.write("Ask your AI Mentor anything 👇")
@@ -333,6 +353,28 @@ Query:
 
 
 
+def build_career_system_prompt(profile):
+    return f"""
+You are a PROFESSIONAL CAREER GUIDANCE AI.
+
+User Profile:
+Interests: {profile['interests']}
+Skills: {profile['skills']}
+Academic Background: {profile['academic_background']}
+Career Goals: {profile['career_goals']}
+
+STRICT RULES:
+- DO NOT answer academic doubts
+- DO NOT explain random topics
+- ONLY career guidance
+- Avoid generic advice
+
+Output format:
+1. Personalized Career Suggestions
+2. Required Skills (gap analysis)
+3. Learning Roadmap (step-by-step)
+4. Resources (courses, platforms)
+"""
 
 with st.sidebar:
     st.markdown("<h2>🛠️ Workspace</h2>", unsafe_allow_html=True)
@@ -355,6 +397,41 @@ def build_recent_chat_context(messages, max_turns=6):
         lines.append(f"{role}: {m['content']}")
     return "\n".join(lines)
 
+def extract_career_field(user_input, last_ai_message):
+    last_ai_message = last_ai_message.lower()
+
+    if "interest" in last_ai_message:
+        return "interests", user_input
+
+    if "skill" in last_ai_message:
+        return "skills", user_input
+
+    if "academic" in last_ai_message or "education" in last_ai_message:
+        return "academic_background", user_input
+
+    if "career goal" in last_ai_message or "goal" in last_ai_message:
+        return "career_goals", user_input
+
+    return None, None
+
+# ================= CAREER GUIDE PROMPTS =================
+
+CAREER_INTAKE_PROMPT = """
+You are a Career Guidance AI.
+
+Your task:
+Ask the user ONLY these questions, one by one:
+1. Interests
+2. Skills
+3. Academic Background
+4. Career Goals
+
+Rules:
+- Ask ONE question at a time
+- Do NOT give advice yet
+- Do NOT answer doubts
+- Keep questions short and clear
+"""
 
 chat_display = st.container()
 with chat_display:
@@ -373,7 +450,6 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
         st.image(up_img, caption="Image Attachment Ready", width=300)
 if prompt := st.chat_input(f"Ask your {feature}..."):
 
-    # 1️⃣ Store user message
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
@@ -385,36 +461,51 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
         "timestamp": firestore.SERVER_TIMESTAMP
     })
 
-    with chat_display:
-        with st.chat_message("user"):
-            st.markdown(prompt)
-            if up_img:
-                st.image(up_img, width=300)
-
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
 
-            # 🔁 Build recent conversation context (for "above response")
-            recent_chat_context = build_recent_chat_context(
-                st.session_state.messages,
-                max_turns=6
-            )
+            # ================= CAREER GUIDE MODE =================
+            if feature == "Career Guide":
+                career_ref, career_profile = get_career_profile(user_uid)
 
-            # 2️⃣ RAG retrieval
-            rag_context = retrieve_rag_context(prompt, user_uid)
+                # ❌ No profile → AI asks questions
+                if not career_profile:
+                    response = client.models.generate_content(
+                        model=MODEL_ID,
+                        contents=[prompt],
+                        config=types.GenerateContentConfig(
+                            system_instruction=CAREER_INTAKE_PROMPT
+                        )
+                    )
 
-            # 3️⃣ Web fallback
-            if not rag_context.strip():
-                rag_context = web_search_context(prompt)
+                    final_answer = response.text
 
-            # 4️⃣ SYSTEM PROMPT (STRICT BEHAVIOR CONTROL)
-            SYSTEM_PROMPT = f"""
+                # ✅ Profile exists → Career guidance
+                else:
+                    SYSTEM_PROMPT = build_career_system_prompt(career_profile)
+
+                    response = client.models.generate_content(
+                        model=MODEL_ID,
+                        contents=[prompt],
+                        config=types.GenerateContentConfig(
+                            system_instruction=SYSTEM_PROMPT
+                        )
+                    )
+
+                    final_answer = response.text
+
+            # ================= DOUBT SOLVER MODE =================
+            else:
+                recent_chat_context = build_recent_chat_context(
+                    st.session_state.messages, 6
+                )
+
+                rag_context = retrieve_rag_context(prompt, user_uid)
+                if not rag_context.strip():
+                    rag_context = web_search_context(prompt)
+
+                SYSTEM_PROMPT = f"""
 You are an Elite Academic Mentor AI.
-
-IMPORTANT:
-This is a continuous conversation.
-Phrases like "above", "previous", "earlier response", "that answer"
-ALWAYS refer to the RECENT CONVERSATION below.
 
 RECENT CONVERSATION:
 {recent_chat_context}
@@ -422,57 +513,36 @@ RECENT CONVERSATION:
 LONG-TERM USER MEMORY:
 {long_term_memory}
 
-RETRIEVED CONTEXT (USER DOCS / WEB):
+RETRIEVED CONTEXT:
 {rag_context}
 
-MODE: {feature}
-STYLE: {"Detailed Research" if deep_dive else "Concise Insight"}
-
-RULES:
-- Resolve references using RECENT CONVERSATION
-- Prefer user documents over web
-- Use memory only for personalization
-- Never say you cannot see earlier messages
-- Never mention system limitations
+Rules:
+- Resolve references using conversation
+- Be accurate and concise
 """
 
-            # 5️⃣ Build input parts (TEXT + IMAGE)
-            input_parts = [prompt]
-            if up_img:
-                img = Image.open(up_img)
-                input_parts.append(img)
-
-            # 6️⃣ TRY GEMINI → FALLBACK TO OLLAMA
-            try:
-                response = client.models.generate_content(
-                    model=MODEL_ID,
-                    contents=input_parts,
-                    config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_PROMPT
+                try:
+                    response = client.models.generate_content(
+                        model=MODEL_ID,
+                        contents=[prompt],
+                        config=types.GenerateContentConfig(
+                            system_instruction=SYSTEM_PROMPT
+                        )
                     )
-                )
-                final_answer = response.text
-                used_model = "gemini"
+                    final_answer = response.text
+                except:
+                    ollama_response = ollama.chat(
+                        model="llama3",
+                        messages=[
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {"role": "user", "content": prompt}
+                        ]
+                    )
+                    final_answer = ollama_response["message"]["content"]
 
-            except Exception as e:
-                # 🔥 QUOTA / RATE LIMIT / API FAIL → OLLAMA
-               
-
-                ollama_response = ollama.chat(
-                    model="llama3",
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": prompt}
-                    ]
-                )
-                final_answer = ollama_response["message"]["content"]
-                used_model = "ollama"
-
-            # 7️⃣ Display answer
+            # Display + store
             st.markdown(final_answer)
-            st.caption(f"🧠 Model used: {used_model}")
 
-            # 8️⃣ Persist assistant message
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": final_answer
@@ -485,3 +555,27 @@ RULES:
             })
 
             st.rerun()
+if feature == "Career Guide":
+
+    career_ref, career_profile = get_career_profile(user_uid)
+
+    # 🔐 Initialize empty profile if not exists
+    if not career_profile:
+        career_profile = {}
+
+    # Try to extract answer from previous AI question
+    if len(st.session_state.messages) >= 2:
+        last_ai = st.session_state.messages[-2]["content"]
+
+        field, value = extract_career_field(prompt, last_ai)
+
+        if field:
+            career_profile[field] = value
+            career_profile["updated_at"] = firestore.SERVER_TIMESTAMP
+
+            career_ref.set(career_profile, merge=True)
+required = ["interests", "skills", "academic_background", "career_goals"]
+
+if all(k in career_profile for k in required):
+    career_profile["completed"] = True
+    career_ref.set(career_profile, merge=True)
