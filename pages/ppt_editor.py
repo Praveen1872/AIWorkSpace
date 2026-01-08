@@ -394,21 +394,19 @@ if "current_slide_idx" in st.session_state:
 col_stage, col_chat = st.columns([1.8, 1], gap="large")
 with col_stage:
     st.title("🖼️ Slides Editor")
+# 1. Get the data
+data = st.session_state.ppt_data
 
-    # ---------- Guard ----------
-    if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
-        st.info("👋 Ask the Assistant to generate slides")
-        
+# 2. 🛡️ INDEX SAFETY CHECK
+if not data:
+    st.info("👋 Ask the Assistant to generate slides")
+    st.stop() # Prevents the rest of the code from running until there is data
 
-    data = st.session_state.ppt_data
+# 3. Ensure the current index isn't larger than the number of slides we actually have
+if st.session_state.current_slide_idx >= len(data):
+    st.session_state.current_slide_idx = 0  # Reset to first slide if out of bounds
 
-    # ---------- Index safety ----------
-    if "current_slide_idx" not in st.session_state:
-        st.session_state.current_slide_idx = 0
-
-    if st.session_state.current_slide_idx >= len(data):
-        st.session_state.current_slide_idx = 0
-
+# 4. Now it is safe to access the slide
     active_slide = data[st.session_state.current_slide_idx]
 
     # ---------- Ensure style exists ----------
