@@ -314,12 +314,22 @@ def retrieve_rag_context(question, user_uid, top_k=5):
 def web_search_context(query):
     response = client.models.generate_content(
         model=MODEL_ID,
-        contents=[f"Search the web and answer factually:\n{query}"],
+        contents=[
+            f"""
+Search the web and provide factual, up-to-date information.
+
+Query:
+{query}
+"""
+        ],
         config=types.GenerateContentConfig(
-            tools=[{"google_search": {}}]
+            tools=[{"google_search": {}}],
+            temperature=0.2
         )
     )
+
     return response.text
+
 
 
 
@@ -388,20 +398,28 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
             SYSTEM_PROMPT = f"""
 You are an Elite Academic Mentor AI.
 
+You ARE allowed to use web-grounded information when provided.
+You MUST NOT say that you cannot browse the web.
+
 LONG-TERM USER MEMORY:
 {long_term_memory}
 
-RETRIEVED CONTEXT:
+RETRIEVED CONTEXT (USER DOCUMENTS OR WEB SEARCH):
 {rag_context}
 
 MODE: {feature}
 STYLE: {"Detailed Research" if deep_dive else "Concise Insight"}
 
-Rules:
-- Use retrieved context first
-- Use memory for personalization
-- If unsure, say so clearly
+INSTRUCTIONS:
+- Prefer user document context when available
+- If context is from web search, treat it as authoritative
+- Use memory only for personalization, not facts
+- If information is still insufficient, say so clearly
+- Never mention system limitations or training data
+
+Answer professionally and academically.
 """
+
 
             response = client.models.generate_content(
                 model=MODEL_ID,
