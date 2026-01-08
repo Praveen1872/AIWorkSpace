@@ -38,6 +38,12 @@ def get_career_profile(user_uid):
     )
     doc = ref.get()
     return ref, doc.to_dict() if doc.exists else None
+CAREER_STEPS = [
+    ("interests", "What are your interests?"),
+    ("skills", "What skills do you currently have?"),
+    ("academic_background", "What is your academic background?"),
+    ("career_goals", "What are your career goals?")
+]
 
 
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -450,11 +456,11 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
         st.image(up_img, caption="Image Attachment Ready", width=300)
 if prompt := st.chat_input(f"Ask your {feature}..."):
 
+    # Store user message
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
     })
-
     chats_col.add({
         "role": "user",
         "content": prompt,
@@ -466,24 +472,37 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
 
             # ================= CAREER GUIDE MODE =================
             if feature == "Career Guide":
+
                 career_ref, career_profile = get_career_profile(user_uid)
 
-                # ❌ No profile → AI asks questions
+                # 🔐 Initialize profile if first time
                 if not career_profile:
-                    response = client.models.generate_content(
-                        model=MODEL_ID,
-                        contents=[prompt],
-                        config=types.GenerateContentConfig(
-                            system_instruction=CAREER_INTAKE_PROMPT
-                        )
-                    )
+                    career_profile = {
+                        "career_step": 0,
+                        "completed": False
+                    }
+                    career_ref.set(career_profile)
 
-                    final_answer = response.text
+                step = career_profile.get("career_step", 0)
 
-                # ✅ Profile exists → Career guidance
+                # 📌 Intake phase (ask questions)
+                if step < len(CAREER_STEPS):
+                    field, question = CAREER_STEPS[step]
+
+                    # Save previous answer (if not first question)
+                    if step > 0:
+                        prev_field, _ = CAREER_STEPS[step - 1]
+                        career_profile[prev_field] = prompt
+                        career_profile["career_step"] = step
+                        career_profile["updated_at"] = firestore.SERVER_TIMESTAMP
+                        career_ref.set(career_profile, merge=True)
+
+                    final_answer = question
+
+                # 🎓 Guidance phase
                 else:
-                    if any(x in prompt.lower() for x in ["what is", "define", "explain", "how does"]):
-                        final_answer = "⚠️ Career Guide mode only answers career-related questions."
+                    career_profile["completed"] = True
+                    career_ref.set(career_profile, merge=True)
 
                     SYSTEM_PROMPT = build_career_system_prompt(career_profile)
 
@@ -494,7 +513,6 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
                             system_instruction=SYSTEM_PROMPT
                         )
                     )
-
                     final_answer = response.text
 
             # ================= DOUBT SOLVER MODE =================
@@ -543,47 +561,17 @@ Rules:
                     )
                     final_answer = ollama_response["message"]["content"]
 
-            # Display + store
+            # Display + store assistant message
             st.markdown(final_answer)
 
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": final_answer
             })
-
             chats_col.add({
                 "role": "assistant",
                 "content": final_answer,
                 "timestamp": firestore.SERVER_TIMESTAMP
             })
-            # ================= CAREER AUTO-SAVE (FIXED LOCATION) =================
-            if feature == "Career Guide":
 
-                career_ref, career_profile = get_career_profile(user_uid)
-
-if not career_profile or not career_profile.get("completed"):
- 
-
-    # Extract answer from last AI question
-    if len(st.session_state.messages) >= 2:
-        last_ai = st.session_state.messages[-2]["content"]
-
-        field, value = extract_career_field(prompt, last_ai)
-
-        if field:
-            career_profile[field] = value
-            career_profile["updated_at"] = firestore.SERVER_TIMESTAMP
-            career_ref.set(career_profile, merge=True)
-    
-
-    # 🔒 CAREER COMPLETION CHECK — ONLY IN CAREER GUIDE
-if feature == "Career Guide" and career_profile:
-    required = ["interests", "skills", "academic_background", "career_goals"]
-
-    if all(k in career_profile for k in required):
-        career_profile["completed"] = True
-        career_ref.set(career_profile, merge=True)
-
-
-
-    st.rerun()
+            st.rerun()
