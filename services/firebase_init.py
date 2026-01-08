@@ -1,12 +1,15 @@
+import os
 import firebase_admin
-from firebase_admin import credentials, auth, firestore
-import streamlit as st
+from firebase_admin import credentials, firestore
 
 def initialize_firebase():
     if not firebase_admin._apps:
-        creds = dict(st.secrets["firebase_credentials"])
-        creds["private_key"] = creds["private_key"].replace("\\n", "\n")
-        cred = credentials.Certificate(creds)
+        cred = credentials.Certificate({
+            "type": "service_account",
+            "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+            "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+            "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+        })
         firebase_admin.initialize_app(cred)
 
     return firestore.client()
