@@ -200,16 +200,14 @@ import os
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=API_KEY)
-
 def call_ai_architect(prompt, current_data=None, active_idx=None):
-
     system_instr = (
         "You are an Academic Slide Architect.\n"
         "Create slides with clear titles and concise bullet points.\n"
-        "Each slide MUST have a MAXIMUM of 4 bullet points.\n"
+        "Each slide MUST have a MAXIMUM of 4 bullet points.\n\n"
         "STRICT RULES:\n"
         "- Return ONLY valid JSON\n"
-        "- Do NOT include HTML, markdown, symbols, bullets, or numbering\n"
+        "- Do NOT include HTML, markdown, bullets, symbols, or numbering\n"
         "- Points must be plain text sentences only\n\n"
         "Format:\n"
         "{'slides': [{'title': 'Slide title', 'points': ['Point one', 'Point two']}], "
@@ -217,7 +215,7 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
     )
 
     if current_data:
-        focus = f"Slide {active_idx+1}" if active_idx is not None else "the whole deck"
+        focus = f"Slide {active_idx + 1}" if active_idx is not None else "the whole deck"
         system_instr = (
             f"Context: {json.dumps(current_data)}\n"
             f"Update {focus} based on: {prompt}\n\n"
@@ -234,7 +232,7 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
                 config={"system_instruction": system_instr},
             )
 
-            # 🔒 STRICT JSON EXTRACTION
+            # 🔒 Extract JSON only
             match = re.search(r"\{[\s\S]*\}", response.text)
             if not match:
                 continue
@@ -250,18 +248,17 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
                 points = []
                 for p in s.get("points", []):
                     p = str(p)
-                    p = re.sub(r"<[^>]+>", "", p)       # remove HTML
-                    p = re.sub(r"^[•\-–\d\.\s]+", "", p)  # remove bullets/numbers
+                    p = re.sub(r"<[^>]+>", "", p)           # remove HTML
+                    p = re.sub(r"^[•\-–\d\.\s]+", "", p)    # remove bullets/numbers
                     p = clean_text(p)
 
-                    if p:  # 🔒 avoid empty bullets
+                    if p:
                         points.append(p)
 
-                # 🔒 HARD GUARANTEE
                 if title and points:
                     clean_slides.append({
                         "title": title,
-                        "points": points[:4]  # enforce max 4
+                        "points": points[:4]   # HARD LIMIT
                     })
 
             if clean_slides:
@@ -271,6 +268,7 @@ def call_ai_architect(prompt, current_data=None, active_idx=None):
             continue
 
     return None, None, None
+
 
 def ai_style_title(instruction):
     """
