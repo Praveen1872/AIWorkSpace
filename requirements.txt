@@ -23,3 +23,6 @@ pillow
 langchain
 langchain-google-genai
 langchain-community
+
+#ollama
+ollama
