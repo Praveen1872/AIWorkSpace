@@ -1,74 +1,95 @@
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, auth, firestore
-from datetime import datetime
+from firebase_admin import credentials, firestore
+import requests
+import os
 
-st.set_page_config(page_title="AI Workspace Register", page_icon="🛡️", layout="centered")
+st.set_page_config(
+    page_title="AI Workspace Register",
+    page_icon="🛡️",
+    layout="centered"
+)
 
 # ------------------ STYLING ------------------
 st.markdown("""
 <style>
-    .stApp { background-color: #FAF8F7; }
-    [data-testid="stVerticalBlock"] > div:nth-child(2) {
-        background-color: white;
-        padding: 40px;
-        border-radius: 25px;
-        border: 1px solid #E0DEDD;
-        box-shadow: 0px 4px 20px rgba(0,0,0,0.03);
-    }
-    .title-text { text-align: center; font-weight: 800; color: #1A1A1A; font-size: 2.2rem; }
-    .subtitle-text { text-align: center; color: #666; margin-bottom: 30px; }
-    div.stButton > button {
-        display: block; margin: 0 auto; width: 100%; border-radius: 50px;
-        height: 3.5em; background-color: #1A1A1A; color: white; border: none;
-        font-weight: 600; transition: all 0.3s ease;
-    }
-    div.stButton > button:hover { background-color: #333333; transform: scale(1.02); color: white !important; }
-    .footer-link { color: #1A1A1A; font-weight: 700; text-decoration: none !important; }
+.stApp { background-color: #FAF8F7; }
+[data-testid="stVerticalBlock"] > div:nth-child(2) {
+    background-color: white;
+    padding: 40px;
+    border-radius: 25px;
+    border: 1px solid #E0DEDD;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.03);
+}
+.title-text { text-align: center; font-weight: 800; font-size: 2.2rem; }
+.subtitle-text { text-align: center; color: #666; margin-bottom: 30px; }
+div.stButton > button {
+    width: 100%;
+    border-radius: 50px;
+    height: 3.5em;
+    background-color: #1A1A1A;
+    color: white;
+    border: none;
+    font-weight: 600;
+}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 class='title-text'>🛡️ Join the Workspace</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle-text'>Create your secure account to start your AI-powered research.</p>", unsafe_allow_html=True)
-
-email = st.text_input("📧 Work Email", placeholder="name@company.com")
-password = st.text_input("🔒 Password", type="password", placeholder="Create a strong password")
-
-# ------------------ FIREBASE INITIALIZATION ------------------
+# ------------------ FIREBASE INIT ------------------
 def initialize_firebase():
     if not firebase_admin._apps:
-        try:
-            creds_dict = dict(st.secrets["firebase_credentials"])
+        cred = credentials.Certificate({
+            "type": "service_account",
+            "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+            "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+            "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        })
+        firebase_admin.initialize_app(cred)
+    return firestore.client()
 
-            # Fix multiline private key
-            private_key = creds_dict["private_key"]
-            private_key = private_key.strip().replace("\r\n", "\n").replace("\r", "\n")
-            creds_dict["private_key"] = private_key
+firestore_db = initialize_firebase()
 
-            cred = credentials.Certificate(creds_dict)
-            firebase_admin.initialize_app(cred)
+# ------------------ FIREBASE SIGN-UP (REST) ------------------
+def firebase_sign_up(email, password):
+    url = (
+        "https://identitytoolkit.googleapis.com/v1/"
+        f"accounts:signUp?key={os.getenv('FIREBASE_WEB_API_KEY')}"
+    )
+    payload = {
+        "email": email,
+        "password": password,
+        "returnSecureToken": True
+    }
+    return requests.post(url, json=payload)
 
-        except Exception as e:
-            st.error(f"Firebase Initialization Failed: {e}")
+# ------------------ UI ------------------
+st.markdown("<h1 class='title-text'>🛡️ Create Account</h1>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle-text'>Join the AI Workspace</p>", unsafe_allow_html=True)
 
-initialize_firebase()
-firestore_db = firestore.client()
+email = st.text_input("📧 Email")
+password = st.text_input("🔒 Password", type="password")
+confirm_password = st.text_input("🔒 Confirm Password", type="password")
 
-# ------------------ SIGN UP LOGIC ------------------
+# ------------------ REGISTER LOGIC ------------------
 if st.button("Sign Up"):
-    if email and password:
-        try:
-            # 1️⃣ Create Firebase Auth User
-            user = auth.create_user(
-                email=email,
-                password=password
-            )
+    if not email or not password or not confirm_password:
+        st.warning("Please fill in all fields")
+    elif password != confirm_password:
+        st.error("Passwords do not match")
+    elif len(password) < 6:
+        st.error("Password must be at least 6 characters")
+    else:
+        res = firebase_sign_up(email, password)
+        if res.status_code == 200:
+            data = res.json()
+            uid = data["localId"]
 
-            # 2️⃣ Create Firestore User Document
-            firestore_db.collection("users").document(user.uid).set({
+            firestore_db.collection("users").document(uid).set({
                 "profile": {
-                    "name": email.split("@")[0],
                     "email": email,
+                    "name": email.split("@")[0],
                     "level": "student",
                     "created_at": firestore.SERVER_TIMESTAMP
                 },
@@ -79,22 +100,12 @@ if st.button("Sign Up"):
                 }
             })
 
-            st.balloons()
-            st.success("Account created successfully! Please log in.")
+            st.success("Account created successfully. Please sign in.")
             st.switch_page("pages/login.py")
-
-        except Exception as e:
-            st.error(f"Registration failed: {str(e)}")
-    else:
-        st.warning("Please fill in all fields.")
+        else:
+            st.error(res.json()["error"]["message"].replace("_", " ").title())
 
 # ------------------ FOOTER ------------------
-st.markdown("<hr style='border-top: 1px solid #E0DEDD; margin-top: 40px;'>", unsafe_allow_html=True)
-st.markdown("""
-<div style="text-align: center; color: #666;">
-    Already have an account? 
-    <a href="/login" target="_self" class="footer-link">
-        Log In here 🚀
-    </a>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("---")
+if st.button("Already have an account? Sign In"):
+    st.switch_page("pages/login.py")

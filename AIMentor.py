@@ -27,75 +27,14 @@ firestore_db = initialize_firebase()
 
 
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
-
-if not st.session_state.logged_in:
-
-    components.html(
-        f"""
-        <html>
-        <head>
-          <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-          <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-        </head>
-        <body style="display:flex;justify-content:center;align-items:center;height:100vh;">
-
-        <script>
-          const firebaseConfig = {{
-            apiKey: "{os.getenv('FIREBASE_WEB_API_KEY')}",
-            authDomain: "{os.getenv('FIREBASE_PROJECT_ID')}.firebaseapp.com"
-          }};
-          firebase.initializeApp(firebaseConfig);
-
-          function googleLogin() {{
-            const provider = new firebase.auth.GoogleAuthProvider();
-            firebase.auth().signInWithPopup(provider)
-              .then(result => result.user.getIdToken())
-              .then(token => {{
-                window.parent.location.search = "?token=" + token;
-              }})
-              .catch(err => alert(err.message));
-          }}
-        </script>
-
-        <button onclick="googleLogin()" style="
-            padding:14px 30px;
-            border-radius:30px;
-            border:none;
-            background:black;
-            color:white;
-            font-size:16px;
-            cursor:pointer;
-        ">
-            Continue with Google
-        </button>
-
-        </body>
-        </html>
-        """,
-        height=400,
-    )
-
-    # Handle token
-    params = st.query_params
-    if "token" in params:
-        decoded = auth.verify_id_token(params["token"])
-        st.session_state.logged_in = True
-        st.session_state.user_uid = decoded["uid"]
-        st.session_state.user_email = decoded["email"]
-        st.query_params.clear()
-        st.rerun()
-
-    st.stop()
-
 API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY)
 
 
 MODEL_ID = "gemini-2.5-flash"
 
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
 st.set_page_config(page_title="AI Professional Workspace", layout="wide")
 st.markdown("""
@@ -179,80 +118,76 @@ def export_last_chat_to_pdf(user_text, ai_text):
 
 import streamlit as st
 
+# ------------------ SESSION INIT ------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+is_logged_in = st.session_state.logged_in
 
 # ------------------ HEADER ------------------
-cols = st.columns([2, 0.8, 0.8, 0.8, 1.1, 1.5], vertical_alignment="center")
+cols = st.columns([2, 0.7, 0.7, 0.7, 0.9, 1.8, 1], vertical_alignment="center")
 
 with cols[0]:
     st.markdown("<h3 style='margin:0; font-weight:800;'>🚀 AI Workspace</h3>", unsafe_allow_html=True)
 
 # ------------------ AUTHENTICATED NAV ------------------
-if st.session_state.logged_in:
+if is_logged_in:
     with cols[1]:
-        if st.button("PPT 🖼️"): st.switch_page("pages/ppt_editor.py")
+        if st.button("PPT 🖼️", key="hdr_ppt"):
+            st.switch_page("pages/ppt_editor.py")
     with cols[2]:
-        if st.button("Word 📝"): st.switch_page("pages/word_editor.py")
+        if st.button("Word 📝", key="hdr_word"):
+            st.switch_page("pages/word_editor.py")
     with cols[3]:
-        if st.button("Notes 📓"): st.switch_page("pages/note.py")
+        if st.button("Notes 📓", key="hdr_note"):
+            st.switch_page("pages/note.py")
     with cols[4]:
-        if st.button("Summarize 🧠"): st.switch_page("pages/Summarizer.py")
-    with cols[5]:
-        if st.button("Logout 🚪"):
+        if st.button("Summarize 📝", key="hdr_sum"):
+            st.switch_page("pages/Summarizer.py")
+    with cols[6]:
+        if st.button("Logout 🚪", key="hdr_out"):
+            # Clear ALL auth-related state
             for k in ["logged_in", "user_uid", "user_email"]:
                 st.session_state.pop(k, None)
             st.rerun()
 
-# ------------------ NOT LOGGED IN (NO ROUTES!) ------------------
+# ------------------ NOT LOGGED IN ------------------
 else:
     with cols[5]:
-        st.markdown("""
-        <button onclick="googleLogin()" style="
-            padding:10px 20px;
-            border-radius:30px;
-            border:none;
-            background:black;
-            color:white;
-            font-weight:600;
-            cursor:pointer;
-        ">
-            Continue with Google 👤
-        </button>
-        """, unsafe_allow_html=True)
+        if st.button("Sign In 👤", key="hdr_login"):
+            st.switch_page("pages/login.py")
+    with cols[6]:
+        if st.button("Sign Up 🚀", key="hdr_signup"):
+            st.switch_page("pages/register.py")
 
 st.markdown("<hr>", unsafe_allow_html=True)
 
 # ------------------ LANDING PAGE ------------------
-if not st.session_state.logged_in:
-    col1, col2 = st.columns([1.2, 1], gap="large")
+if not is_logged_in:
+    main_col1, main_col2 = st.columns([1.2, 1], gap="large")
 
-    with col1:
+    with main_col1:
+        st.markdown("<br><br>", unsafe_allow_html=True)
         st.markdown("""
-        <h1 style='font-size:3rem;'>👋 Welcome to</h1>
-        <h1 style='font-size:4rem; color:#FF6042; margin-top:-20px;'>AI Workspace</h1>
-        <p style='font-size:1.2rem; color:#555;'>
-            Stop wasting hours on tasks AI can handle.<br>
-            Your personal academic mentor is ready to help you.
-        </p>
+            <h1 style='font-size:3rem;'>👋 Welcome to</h1>
+            <h1 style='font-size:4rem; color:#FF6042; margin-top:-20px;'>AI Workspace</h1>
+            <p style='font-size:1.25rem; color:#555; margin-top:20px;'>
+                Stop wasting hours on tasks AI can handle.<br>
+                Your personal academic mentor is ready to help you.
+            </p>
         """, unsafe_allow_html=True)
 
-        st.info("💡 Sign in with Google to access your personalized AI workspace.")
+        st.info("💡 Please sign in or sign up to access your AI mentor.")
 
-        st.markdown("""
-        <button onclick="googleLogin()" style="
-            margin-top:20px;
-            padding:14px 28px;
-            border-radius:30px;
-            border:none;
-            background:black;
-            color:white;
-            font-size:16px;
-            cursor:pointer;
-        ">
-            Continue with Google 🚀
-        </button>
-        """, unsafe_allow_html=True)
+        if st.button("Unlock Your AI Workspace 👉", use_container_width=True):
+            st.switch_page("pages/register.py")
 
-    with col2:
+        st.markdown(
+            "<p style='text-align:center; color:#888;'>Powered by <b>Google Gemini AI</b></p>",
+            unsafe_allow_html=True
+        )
+
+    with main_col2:
         st.image("assets/banner2_desktop.png", use_container_width=True)
 
     st.stop()
@@ -261,7 +196,8 @@ if not st.session_state.logged_in:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-user_uid = st.session_state.get("user_uid")
+user_uid = st.session_state["user_uid"]
+
 
 st.success(f"Welcome back! ({st.session_state.get('user_email')})")
 st.write("Ask your AI Mentor anything 👇")
