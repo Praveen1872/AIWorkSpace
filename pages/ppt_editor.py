@@ -393,7 +393,7 @@ with col_stage:
     # ---------- Guard ----------
     if "ppt_data" not in st.session_state or not st.session_state.ppt_data:
         st.info("👋 Ask the Assistant to generate slides")
-        st.stop()
+        
 
     data = st.session_state.ppt_data
 
