@@ -4,7 +4,7 @@ from firebase_admin import credentials, auth, firestore
 from google import genai
 from google.genai import types
 from fpdf import FPDF
-import PIL.Image
+from PIL import Image
 import io
 import os
 import streamlit.components.v1 as components
@@ -118,7 +118,7 @@ def export_last_chat_to_pdf(user_text, ai_text):
     
     return pdf.output(dest='S').encode('latin-1')
 
-import streamlit as st
+
 
 # ------------------ SESSION INIT ------------------
 if "logged_in" not in st.session_state:
@@ -366,10 +366,9 @@ with st.expander("📷 Analysis Tools (Upload Images/Diagrams)", expanded=False)
     if up_img:
         st.image(up_img, caption="Image Attachment Ready", width=300)
 
-
 if prompt := st.chat_input(f"Ask your {feature}..."):
 
-    # UI + state
+    # 1️⃣ UI + session state
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
@@ -384,22 +383,22 @@ if prompt := st.chat_input(f"Ask your {feature}..."):
     with chat_display:
         with st.chat_message("user"):
             st.markdown(prompt)
+            if up_img:
+                st.image(up_img, width=300)
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
 
-            # 1️⃣ RAG
+            # 2️⃣ RAG retrieval
             rag_context = retrieve_rag_context(prompt, user_uid)
 
-            # 2️⃣ WEB FALLBACK
+            # 3️⃣ Web fallback
             if not rag_context.strip():
                 rag_context = web_search_context(prompt)
 
+            # 4️⃣ SYSTEM PROMPT (CONTROL BEHAVIOR)
             SYSTEM_PROMPT = f"""
 You are an Elite Academic Mentor AI.
-
-You ARE allowed to use web-grounded information when provided.
-You MUST NOT say that you cannot browse the web.
 
 LONG-TERM USER MEMORY:
 {long_term_memory}
@@ -410,28 +409,37 @@ RETRIEVED CONTEXT (USER DOCUMENTS OR WEB SEARCH):
 MODE: {feature}
 STYLE: {"Detailed Research" if deep_dive else "Concise Insight"}
 
-INSTRUCTIONS:
-- Prefer user document context when available
-- If context is from web search, treat it as authoritative
-- Use memory only for personalization, not facts
-- If information is still insufficient, say so clearly
-- Never mention system limitations or training data
-
-Answer professionally and academically.
+RULES:
+- Use retrieved context FIRST
+- Use memory ONLY for personalization
+- If image is provided, analyze it carefully
+- If context is insufficient, state uncertainty clearly
+- NEVER mention system limitations, browsing limits, or training data
 """
 
+            # 5️⃣ MULTIMODAL INPUT (TEXT + IMAGE)
+            input_parts = [prompt]
 
+            if up_img:
+                img = Image.open(up_img)
+                input_parts.append(
+                    types.Part.from_image(img)
+                )
+
+            # 6️⃣ GEMINI CALL
             response = client.models.generate_content(
                 model=MODEL_ID,
-                contents=[prompt],
+                contents=input_parts,
                 config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT
+                    system_instruction=SYSTEM_PROMPT,
+                    temperature=0.2
                 )
             )
 
             final_answer = response.text
             st.markdown(final_answer)
 
+            # 7️⃣ Persist assistant message
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": final_answer
