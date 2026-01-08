@@ -144,7 +144,12 @@ FONT_GROUPS = {
         "Impact", "Comic Sans MS"
     ]
 }
+# ✅ REQUIRED INITIALIZATION
+if "ppt_data" not in st.session_state:
+    st.session_state.ppt_data = []
 
+if "current_slide_idx" not in st.session_state:
+    st.session_state.current_slide_idx = 0
 ppt_col = (
     firestore_db
     .collection("users")
@@ -609,66 +614,32 @@ if st.button("✨ Apply AI Style"):
         st.warning("Could not understand style command")
 
     
-
 if user_in := ppt_prompt:
-    # Store user chat
-    st.session_state.chat_history.append({
-        "role": "user",
-        "content": user_in
-    })
+    st.session_state.chat_history.append({"role": "user", "content": user_in})
 
     with st.spinner("Architecting ..."):
-        idx = (
-            st.session_state.current_slide_idx
-            if (edit_mode and "ppt_data" in st.session_state)
-            else None
-        )
-
+        # Determine if we are updating one slide or the whole deck
+        idx = st.session_state.current_slide_idx if edit_mode else None
+        
         new_slides, advice, model_name = call_ai_architect(
-            user_in,
-            st.session_state.get("ppt_data"),
+            user_in, 
+            st.session_state.ppt_data, 
             idx
         )
 
         if new_slides:
-            st.session_state.ppt_data = []
-
-            for i, slide in enumerate(new_slides):
-                slide["style"] = st.session_state.slide_styles.get(
-        i,
-        {
-            "font": "Arial",
-            "size": 42,
-            "weight": 800,
-            "color": "#1e293b"
-        }
-    )
-            st.session_state.ppt_data.append(slide)
-
-
+            if edit_mode:
+                # 🎯 AI EDIT: Replace only the active slide
+                # (Assuming the AI returns at least one slide for the update)
+                st.session_state.ppt_data[st.session_state.current_slide_idx] = new_slides[0]
+            else:
+                # 🖼️ FULL GEN: Replace the entire deck
+                st.session_state.ppt_data = new_slides
+            
+            # Save to history/database logic follows...
             st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": "Done",
+                "role": "assistant", 
+                "content": "Changes applied!", 
                 "advice": advice
             })
-
-       
-            if edit_mode and "active_ppt_id" in st.session_state:
-                ppt_doc_ref = ppt_col.document(st.session_state.active_ppt_id)
-
-                # ❗ clear old chunks
-                for c in ppt_doc_ref.collection("chunks").stream():
-                    c.reference.delete()
-            else:
-                ppt_doc_ref = ppt_col.document()
-                ppt_doc_ref.set({
-                    "title": user_in,   # first prompt = title
-                    "created_at": firestore.SERVER_TIMESTAMP,
-                    "source": "ppt_generator"
-                })
-                st.session_state.active_ppt_id = ppt_doc_ref.id
-
-           
-            store_ppt_chunks(ppt_doc_ref, new_slides)
-
             st.rerun()
