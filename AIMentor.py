@@ -6,31 +6,29 @@ from google.genai import types
 from fpdf import FPDF
 import PIL.Image
 import io
-
+import os
 API_KEY = st.secrets["GEMINI_API_KEY"]
+
 def initialize_firebase():
     if not firebase_admin._apps:
         try:
-            creds_dict = dict(st.secrets["firebase_credentials"])
-
-        
-            private_key = creds_dict["private_key"]
-            private_key = private_key.strip()
-            private_key = private_key.replace("\r\n", "\n").replace("\r", "\n")
-
-            creds_dict["private_key"] = private_key
-
-            cred = credentials.Certificate(creds_dict)
+            cred = credentials.Certificate({
+                "type": "service_account",
+                "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+                "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+                "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+            })
 
             firebase_admin.initialize_app(cred)
 
-
         except Exception as e:
-            st.error(f"Firebase Initialization Failed: {e}")
+            raise RuntimeError(f"Firebase Initialization Failed: {e}")
 
-initialize_firebase()
+    return firestore.client()
 
-firestore_db = firestore.client()
+
+# Initialize once
+firestore_db = initialize_firebase()
 
 client = genai.Client(api_key=API_KEY)
 

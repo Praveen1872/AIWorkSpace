@@ -65,15 +65,24 @@ user_uid = st.session_state.get("user_uid")
 
 def initialize_firebase():
     if not firebase_admin._apps:
-        cred = credentials.Certificate({
-            "type": "service_account",
-            "project_id": os.getenv("FIREBASE_PROJECT_ID"),
-            "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
-            "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
-        })
-        firebase_admin.initialize_app(cred)
+        try:
+            cred = credentials.Certificate({
+                "type": "service_account",
+                "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+                "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+                "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+            })
+
+            firebase_admin.initialize_app(cred)
+
+        except Exception as e:
+            raise RuntimeError(f"Firebase Initialization Failed: {e}")
 
     return firestore.client()
+
+
+# Initialize once
+firestore_db = initialize_firebase()
 
 user_uid = st.session_state.get("user_uid")
 firestore_db = firestore.client()
