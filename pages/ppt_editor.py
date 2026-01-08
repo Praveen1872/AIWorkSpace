@@ -8,7 +8,7 @@ from google import genai
 from pptx.util import Pt
 from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
-
+prs = None
 
 
 st.set_page_config(page_title="Slide Architect Pro", layout="wide")
@@ -437,9 +437,7 @@ with st.expander("🎨 Title Style (Active Slide)", expanded=False):
                     st.rerun()
 
         st.divider()
-        from pptx.util import Pt
-from pptx.enum.text import PP_ALIGN
-from pptx.dml.color import RGBColor
+
 
 # ✅ ALWAYS create Presentation ONCE
 prs = Presentation()
@@ -456,59 +454,36 @@ with c1:
 
 # ---------------- EXPORT PPT ----------------
 with c2:
-    for i, s in enumerate(st.session_state.ppt_data):
+    if st.button("📥 Download PPTX", use_container_width=True):
 
-        slide = prs.slides.add_slide(prs.slide_layouts[1])
+        prs = Presentation()
+        prs.slide_width = 9144000
+        prs.slide_height = 6858000
 
-        # ---------- TITLE ----------
-        title_shape = slide.shapes.title
-        title_shape.text = clean_text(s.get("title", ""))
+        for i, s in enumerate(st.session_state.ppt_data):
 
-        style = s.get("style", {})
-        if not isinstance(style, dict):
-            style = {}
+            slide = prs.slides.add_slide(prs.slide_layouts[1])
 
-        for paragraph in title_shape.text_frame.paragraphs:
-            for run in paragraph.runs:
+            # TITLE
+            slide.shapes.title.text = clean_text(s.get("title", ""))
 
-                if "font" in style:
-                    run.font.name = style["font"]
+            # CONTENT
+            slide_points = s.get("points", [])[:7]
+            combined_text = "\n".join(clean_text(p) for p in slide_points)
 
-                if "size" in style:
-                    run.font.size = Pt(int(style["size"]))
+            if len(slide.placeholders) > 1:
+                slide.placeholders[1].text = combined_text
 
-                if "weight" in style:
-                    run.font.bold = style["weight"] >= 700
+        buf = io.BytesIO()
+        prs.save(buf)
 
-                if "color" in style:
-                    hex_color = style["color"].lstrip("#")
-                    if len(hex_color) == 6:
-                        run.font.color.rgb = RGBColor(
-                            int(hex_color[0:2], 16),
-                            int(hex_color[2:4], 16),
-                            int(hex_color[4:6], 16),
-                        )
-
-        # ---------- CONTENT ----------
-        slide_points = s.get("points", [])[:7]
-        combined_text = "\n".join(clean_text(p) for p in slide_points)
-
-        if len(slide.placeholders) > 1:
-            slide.placeholders[1].text = combined_text
-
-    # ---------- DOWNLOAD ----------
-    buf = io.BytesIO()
-    prs.save(buf)
-
-    st.download_button(
-        "📥 Download PPTX",
-        data=buf.getvalue(),
-        file_name="presentation.pptx",
-        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        use_container_width=True,
-    )
-
-
+        st.download_button(
+            "⬇ Download PPTX",
+            data=buf.getvalue(),
+            file_name="presentation.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            use_container_width=True,
+        )
 
 with col_chat:
     st.title("AI Assistant")
