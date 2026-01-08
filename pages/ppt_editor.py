@@ -201,31 +201,67 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 
 client = genai.Client(api_key=API_KEY)
 
-
 def call_ai_architect(prompt, current_data=None, active_idx=None):
-    
+
     system_instr = (
-    "You are an Academic Slide Architect. Create as many slides as necessary to cover the topic "
-    "comprehensively. IMPORTANT: Each slide MUST have a MAXIMUM of 4 bullet points. "
-    "If the content requires more than 7 points, increment to a new slide with a specific sub-title. "
-    "Return ONLY a valid JSON object. Do NOT use markdown bolding (**). "
-    "Format: {'slides': [{'title': '...', 'points': ['point 1', 'point 2']}], 'mentor_advice': '...'}"
-)
+        "You are an Academic Slide Architect. Create slides with clear titles and concise bullet points. "
+        "Each slide MUST have a MAXIMUM of 4 bullet points. "
+        "Return ONLY valid JSON. "
+        "Do NOT include HTML, markdown, symbols, or numbering. "
+        "Points must be plain sentences only.\n\n"
+        "Format:\n"
+        "{'slides': [{'title': 'Slide title', 'points': ['Point one', 'Point two']}], "
+        "'mentor_advice': '...'}"
+    )
+
     if current_data:
         focus = f"Slide {active_idx+1}" if active_idx is not None else "the whole deck"
-        system_instr = f"Context: {json.dumps(current_data)}. Update {focus} based on: {prompt}. " + system_instr
+        system_instr = (
+            f"Context: {json.dumps(current_data)}. "
+            f"Update {focus} based on: {prompt}. "
+            + system_instr
+        )
 
     model_list = ["gemini-2.5-flash-lite"]
-    
+
     for model_name in model_list:
         try:
-            response = client.models.generate_content(model=model_name, contents=prompt, config={"system_instruction": system_instr})
-            match = re.search(r'\{.*\}', response.text, re.DOTALL)
-            if match:
-                res_json = json.loads(match.group(0))
-                return res_json.get('slides'), res_json.get('mentor_advice'), model_name
-        except: continue
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={"system_instruction": system_instr},
+            )
+
+            match = re.search(r"\{.*\}", response.text, re.DOTALL)
+            if not match:
+                continue
+
+            res_json = json.loads(match.group(0))
+            slides = res_json.get("slides", [])
+
+            # 🔒 HARD SANITIZATION (CRITICAL)
+            clean_slides = []
+            for s in slides:
+                title = clean_text(s.get("title", ""))
+
+                points = []
+                for p in s.get("points", []):
+                    p = re.sub(r"<[^>]+>", "", str(p))  # remove HTML
+                    p = re.sub(r"^[•\-–\d\.]+", "", p)  # remove bullets/numbers
+                    points.append(p.strip())
+
+                clean_slides.append({
+                    "title": title,
+                    "points": points
+                })
+
+            return clean_slides, res_json.get("mentor_advice"), model_name
+
+        except Exception as e:
+            continue
+
     return None, None, None
+
 
 def ai_style_title(instruction):
     """
