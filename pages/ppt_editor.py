@@ -96,9 +96,15 @@ is_logged_in = st.session_state.get('logged_in', False)
 if not is_logged_in:
     st.switch_page("pages/login.py")
 
-# ✅ REQUIRED INITIALIZATION
+if "ppt_data" not in st.session_state:
+    st.session_state.ppt_data = []
+
+if "slide_styles" not in st.session_state:
+    st.session_state.slide_styles = {}
+
 if "current_slide_idx" not in st.session_state:
     st.session_state.current_slide_idx = 0
+
 
 
 
@@ -130,26 +136,7 @@ def initialize_firebase():
 
 firestore_db = initialize_firebase()
 user_uid = st.session_state.get("user_uid")
-FONT_GROUPS = {
-    "Simple Light": [
-        "Arial", "Inter", "Poppins", "Montserrat", "Roboto"
-    ],
-    "Serif": [
-        "Times New Roman", "Georgia", "EB Garamond"
-    ],
-    "Mono": [
-        "Courier New"
-    ],
-    "Display": [
-        "Impact", "Comic Sans MS"
-    ]
-}
-# ✅ REQUIRED INITIALIZATION
-if "ppt_data" not in st.session_state:
-    st.session_state.ppt_data = []
 
-if "current_slide_idx" not in st.session_state:
-    st.session_state.current_slide_idx = 0
 ppt_col = (
     firestore_db
     .collection("users")
@@ -316,7 +303,7 @@ Example output:
 def store_ppt_chunks(ppt_doc_ref, slides):
     chunks_col = ppt_doc_ref.collection("chunks")
 
-    for s in slides:
+    for s in slides: 
         chunks_col.add({
             "title": s.get("title", "").strip(),
             "points": s.get("points", []),
@@ -377,7 +364,12 @@ if "active_ppt_id" in st.session_state:
 
 
 if "slide_styles" not in st.session_state:
-    st.session_state.slide_styles = {}
+    for i in range(len(st.session_state.ppt_data)):
+        st.session_state.slide_styles.setdefault(
+        i,
+        {"font": "Arial", "size": 42, "weight": 800, "color": "#1e293b"}
+    )
+
 
 # Ensure current slide has a style
 if "current_slide_idx" in st.session_state:
@@ -568,3 +560,8 @@ if user_in := ppt_prompt:
 
             st.session_state.chat_history.append({"role": "assistant", "content": "Updated!", "advice": advice})
             st.rerun()
+        for i in range(len(st.session_state.ppt_data)):
+            st.session_state.slide_styles.setdefault(
+        i,
+        {"font": "Arial", "size": 42, "weight": 800, "color": "#1e293b"}
+    )
