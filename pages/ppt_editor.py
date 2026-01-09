@@ -54,7 +54,7 @@ st.set_page_config(page_title="Slide Architect Pro", layout="wide")
 #     .slide-content {
 #         font-size: 26px;
 #         line-height: 1.6;
-#         color: #FF4520;
+#         color: #2D2D2D;
 #         flex-grow: 1;
 #     }
 
@@ -417,9 +417,9 @@ with col_stage:
                 <h1 style="font-family: {style['font']}; font-size: {style['size']}px; color: {style['color']};">
                     {active_slide['title']}
                 </h1>
-                <ul>
-                    {"".join([f"<li>{p}</li>" for p in active_slide['points']])}
-                </ul>
+<ul style="color: #000000;">
+    {"".join([f"<li>{p}</li>" for p in active_slide['points']])}
+</ul>
             </div>
         """, unsafe_allow_html=True)
 ppt_data = st.session_state.get("ppt_data", [])
