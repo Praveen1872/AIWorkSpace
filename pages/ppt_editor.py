@@ -90,6 +90,8 @@ st.set_page_config(page_title="Slide Architect Pro", layout="wide")
 #     }
 # </style>
 # """, unsafe_allow_html=True)
+if st.session_state.current_slide_idx >= len(st.session_state.ppt_data):
+    st.session_state.current_slide_idx = 0
 
 
 is_logged_in = st.session_state.get('logged_in', False)
@@ -420,6 +422,22 @@ with col_stage:
                 </ul>
             </div>
         """, unsafe_allow_html=True)
+ppt_data = st.session_state.get("ppt_data", [])
+
+if len(ppt_data) > 0:
+    st.write("### 🎞️ Slide Navigator")
+
+    nav_cols = st.columns(min(len(ppt_data), 10))
+
+    for i in range(len(ppt_data)):
+        with nav_cols[i % len(nav_cols)]:
+            if st.button(
+                str(i + 1),
+                key=f"nav_{i}",
+                type="primary" if i == st.session_state.current_slide_idx else "secondary"
+            ):
+                st.session_state.current_slide_idx = i
+                st.rerun()
 
     # ---------- NAVIGATOR ----------
     st.write("### 🎞️ Slide Navigator")
