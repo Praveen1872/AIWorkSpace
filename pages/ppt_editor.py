@@ -423,8 +423,7 @@ with col_stage:
             </div>
         """, unsafe_allow_html=True)
 ppt_data = st.session_state.get("ppt_data", [])
-nav_uid = f"nav_{id(st.session_state.ppt_data)}"
-
+nav_uid = f"nav_{st.session_state.get('active_ppt_id', 'temp')}"
 
 
 if ppt_data:
@@ -436,12 +435,13 @@ if ppt_data:
     for i in range(len(ppt_data)):
         with nav_cols[i % col_count]:
             if st.button(
-                f"{i+1}",
-                key=f"{nav_uid}_{i}",   # ✅ FIXED KEY
+                str(i + 1),
+                key=f"{nav_uid}_slide_{i}",   # ✅ UNIQUE FOREVER
                 type="primary" if i == st.session_state.current_slide_idx else "secondary"
             ):
                 st.session_state.current_slide_idx = i
                 st.rerun()
+
 
 
     st.divider()
