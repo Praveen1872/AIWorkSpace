@@ -423,9 +423,11 @@ with col_stage:
 
     # ---------- NAVIGATOR ----------
     st.write("### 🎞️ Slide Navigator")
-    nav_cols = st.columns(min(len(data), 10))
+    ppt_data = st.session_state.get("ppt_data", [])
+    nav_cols = st.columns(min(len(ppt_data), 10))
 
-    for i in range(len(data)):
+
+    for i in range(len(ppt_data)):
         with nav_cols[i % 10]:
             if st.button(
                 str(i + 1),
