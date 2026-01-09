@@ -90,8 +90,7 @@ st.set_page_config(page_title="Slide Architect Pro", layout="wide")
 #     }
 # </style>
 # """, unsafe_allow_html=True)
-if st.session_state.current_slide_idx >= len(st.session_state.ppt_data):
-    st.session_state.current_slide_idx = 0
+
 
 
 is_logged_in = st.session_state.get('logged_in', False)
@@ -107,7 +106,8 @@ if "slide_styles" not in st.session_state:
 if "current_slide_idx" not in st.session_state:
     st.session_state.current_slide_idx = 0
 
-
+if st.session_state.current_slide_idx >= len(st.session_state.ppt_data):
+    st.session_state.current_slide_idx = 0
 
 
 user_uid = st.session_state.get("user_uid")
