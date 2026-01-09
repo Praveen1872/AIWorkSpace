@@ -498,7 +498,7 @@ with c2:
             points = s.get("points", [])[:7]
             if len(slide.placeholders) > 1:
                 tf = slide.placeholders[1].text_frame
-                tf.clear()
+            tf.clear()
 
     for p in points:
         para = tf.add_paragraph()
