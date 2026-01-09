@@ -423,35 +423,26 @@ with col_stage:
             </div>
         """, unsafe_allow_html=True)
 ppt_data = st.session_state.get("ppt_data", [])
+nav_uid = f"nav_{id(st.session_state.ppt_data)}"
 
-if len(ppt_data) > 0:
+
+
+if ppt_data:
     st.write("### 🎞️ Slide Navigator")
 
-    nav_cols = st.columns(min(len(ppt_data), 10))
+    col_count = min(len(ppt_data), 10)
+    nav_cols = st.columns(col_count)
 
     for i in range(len(ppt_data)):
-        with nav_cols[i % len(nav_cols)]:
+        with nav_cols[i % col_count]:
             if st.button(
-                str(i + 1),
-                key=f"nav_{i}",
+                f"{i+1}",
+                key=f"{nav_uid}_{i}",   # ✅ FIXED KEY
                 type="primary" if i == st.session_state.current_slide_idx else "secondary"
             ):
                 st.session_state.current_slide_idx = i
                 st.rerun()
 
-    # ---------- NAVIGATOR ----------
-    st.write("### 🎞️ Slide Navigator")
-    ppt_data = st.session_state.get("ppt_data", [])
-    nav_cols = st.columns(min(len(ppt_data), 10))
-    for i in range(len(ppt_data)):
-        with nav_cols[i % len(nav_cols)]:
-         if st.button(
-            str(i + 1),
-            key=f"nav_{i}",
-            type="primary" if i == st.session_state.current_slide_idx else "secondary"
-        ):
-            st.session_state.current_slide_idx = i
-            st.rerun()
 
     st.divider()
 
