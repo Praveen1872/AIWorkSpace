@@ -496,19 +496,21 @@ with c2:
 
             # CONTENT
             points = s.get("points", [])[:7]
+
             if len(slide.placeholders) > 1:
                 tf = slide.placeholders[1].text_frame
-            tf.clear()
+                tf.clear()
 
-    for p in points:
-        para = tf.add_paragraph()
-        para.text = clean_text(p)
-        para.font.size = Pt(20)
-        para.font.name = "Arial"
-        para.font.color.rgb = RGBColor(0, 0, 0)  # ✅ BLACK
+                for p in points:
+                    para = tf.add_paragraph()
+                    para.text = clean_text(p)
+                    para.font.size = Pt(20)
+                    para.font.name = "Arial"
+                    para.font.color.rgb = RGBColor(0, 0, 0)  # ✅ BLACK
 
-        buf = io.BytesIO()
-        prs.save(buf)
+            buf = io.BytesIO()
+            prs.save(buf)
+        
 
         st.download_button(
             "⬇ Download PPTX",
