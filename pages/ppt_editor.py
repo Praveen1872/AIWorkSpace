@@ -54,7 +54,7 @@ st.set_page_config(page_title="Slide Architect Pro", layout="wide")
 #     .slide-content {
 #         font-size: 26px;
 #         line-height: 1.6;
-#         color: #2D2D2D;
+#         color: #FF4520;
 #         flex-grow: 1;
 #     }
 
@@ -574,35 +574,3 @@ if user_in := ppt_prompt:
         i,
         {"font": "Arial", "size": 42, "weight": 800, "color": "#1e293b"}
     )
-with st.sidebar:
-    st.subheader("📂 PPT History")
-
-    ppt_docs = load_user_ppts()
-
-    if ppt_docs:
-        title_map = {
-            f"{i+1}. {p['title']}": p["id"]
-            for i, p in enumerate(ppt_docs)
-        }
-
-        selected = st.selectbox("Past PPTs", title_map.keys())
-
-        if st.button("📂 Load PPT"):
-            ppt_id = title_map[selected]
-            ppt_doc = ppt_col.document(ppt_id)
-            chunks = ppt_doc.collection("chunks").stream()
-
-            slides = []
-            for c in chunks:
-                d = c.to_dict()
-                slides.append({
-                    "title": d.get("title", ""),
-                    "points": d.get("points", []),
-                })
-
-            if slides:
-                st.session_state.ppt_data = slides
-                st.session_state.slide_styles = {}
-                st.session_state.current_slide_idx = 0
-                st.success("PPT loaded successfully")
-                st.rerun()
