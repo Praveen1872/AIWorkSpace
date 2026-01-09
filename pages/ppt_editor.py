@@ -443,17 +443,15 @@ if len(ppt_data) > 0:
     st.write("### 🎞️ Slide Navigator")
     ppt_data = st.session_state.get("ppt_data", [])
     nav_cols = st.columns(min(len(ppt_data), 10))
-
-
     for i in range(len(ppt_data)):
-        with nav_cols[i % 10]:
-            if st.button(
-                str(i + 1),
-                key=f"nav_{i}",
-                type="primary" if i == st.session_state.current_slide_idx else "secondary"
-            ):
-                st.session_state.current_slide_idx = i
-                st.rerun()
+        with nav_cols[i % len(nav_cols)]:
+         if st.button(
+            str(i + 1),
+            key=f"nav_{i}",
+            type="primary" if i == st.session_state.current_slide_idx else "secondary"
+        ):
+            st.session_state.current_slide_idx = i
+            st.rerun()
 
     st.divider()
 
@@ -585,3 +583,35 @@ if user_in := ppt_prompt:
         i,
         {"font": "Arial", "size": 42, "weight": 800, "color": "#1e293b"}
     )
+with st.sidebar:
+    st.subheader("📂 PPT History")
+
+    ppt_docs = load_user_ppts()
+
+    if ppt_docs:
+        title_map = {
+            f"{i+1}. {p['title']}": p["id"]
+            for i, p in enumerate(ppt_docs)
+        }
+
+        selected = st.selectbox("Past PPTs", title_map.keys())
+
+        if st.button("📂 Load PPT"):
+            ppt_id = title_map[selected]
+            ppt_doc = ppt_col.document(ppt_id)
+            chunks = ppt_doc.collection("chunks").stream()
+
+            slides = []
+            for c in chunks:
+                d = c.to_dict()
+                slides.append({
+                    "title": d.get("title", ""),
+                    "points": d.get("points", []),
+                })
+
+            if slides:
+                st.session_state.ppt_data = slides
+                st.session_state.slide_styles = {}
+                st.session_state.current_slide_idx = 0
+                st.success("PPT loaded successfully")
+                st.rerun()
